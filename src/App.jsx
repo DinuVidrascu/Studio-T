@@ -54,7 +54,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [userRole, setUserRole] = useState('admin');
+  const [userRole, setUserRole] = useState('user');
   const [registeredUsers, setRegisteredUsers] = useState([]);
 
   const w = useWindowWidth();
@@ -79,11 +79,6 @@ export default function App() {
           let role = 'user';
           if (userSnap.exists()) {
             role = userSnap.data().role || 'user';
-          } else {
-            const usersSnap = await getDocs(collection(db, "users"));
-            if (usersSnap.empty) {
-              role = 'admin';
-            }
           }
           setUserRole(role);
           await setDoc(userRef, {
@@ -95,7 +90,10 @@ export default function App() {
           }, { merge: true });
         } catch (err) {
           console.error("Error setting user profile:", err);
+          setUserRole('user');
         }
+      } else {
+        setUserRole('user');
       }
       setAuthLoading(false);
     });
