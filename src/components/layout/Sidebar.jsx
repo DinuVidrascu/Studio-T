@@ -14,7 +14,7 @@ const NAV = [
   { id: 'settings',  Icon: Settings,         label: 'Setări'   },
 ];
 
-export default function Sidebar({ view, setView, unreadCount = 0, theme, setTheme, user }) {
+export default function Sidebar({ view, setView, unreadCount = 0, theme, setTheme, user, userRole = 'user' }) {
   const hasCritical = unreadCount > 0;
 
   return (
@@ -84,8 +84,13 @@ export default function Sidebar({ view, setView, unreadCount = 0, theme, setThem
             }}>{user ? user.displayName?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'TL'}</div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
               {user ? user.displayName : 'Lider Echipă'}
+              {user && (
+                <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', padding: '2px 6px', borderRadius: 4, background: userRole === 'admin' ? C.coralSoft : C.lineSoft, color: userRole === 'admin' ? C.coral : C.inkSoft }}>
+                  {userRole}
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 11, color: C.inkSoft, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user ? user.email : 'Designer'}
