@@ -134,7 +134,9 @@ export default function Dashboard({ projects, team, events, onOpen, onAdd, onDel
           {!isMobile && <h1 style={{ margin:0, fontSize:30, fontWeight:600, color:C.ink, fontFamily:SERIF, letterSpacing:'-0.5px' }}>Buna ziua</h1>}
           <p style={{ margin:isMobile?'4px 0 0':'6px 0 0', color:C.inkSoft, fontSize:isMobile?13:14, fontFamily:SANS }}>Luni, 29 iunie 2026</p>
         </div>
-        <AddBtn onClick={onAdd} label={isMobile?'Proiect':'Proiect nou'} isMobile={isMobile} />
+        {userRole === 'admin' && (
+          <AddBtn onClick={onAdd} label={isMobile?'Proiect':'Proiect nou'} isMobile={isMobile} />
+        )}
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr 1fr':'repeat(4,1fr)', gap:isMobile?12:16, marginBottom:isMobile?18:26 }}>

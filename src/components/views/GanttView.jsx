@@ -107,7 +107,9 @@ export default function GanttView({ projects, team, onOpen, onUpdateProject, onA
           <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28, fontWeight: 600, color: C.ink, fontFamily: SERIF, letterSpacing: '-0.5px' }}>Timeline</h1>
           {!isMobile && <p style={{ margin: '6px 0 0', color: C.inkSoft, fontSize: 14, fontFamily: SANS }}>Planul vizual al proiectelor. Treci cu mouse-ul peste bare pentru detalii rapide.</p>}
         </div>
-        <AddBtn onClick={onAdd} label={isMobile ? 'Nou' : 'Proiect nou'} isMobile={isMobile} />
+        {userRole === 'admin' && (
+          <AddBtn onClick={onAdd} label={isMobile ? 'Nou' : 'Proiect nou'} isMobile={isMobile} />
+        )}
       </div>
       
       <Card style={{ overflow: 'hidden' }}>

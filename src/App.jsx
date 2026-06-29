@@ -283,6 +283,7 @@ export default function App() {
     }
     setNotifications(prev => [{
       id: `update-${updatedProj.id}-${Date.now()}`,
+      projectId: updatedProj.id,
       type: 'update',
       message: `Proiectul "${updatedProj.name}" a fost actualizat.`,
       time: Date.now(),
@@ -301,6 +302,7 @@ export default function App() {
     if (type === 'comment' && userRole !== 'admin') {
       setNotifications(prev => [{
         id: `msg-${proj.id}-${Date.now()}`,
+        projectId: proj.id,
         type: 'update',
         message: `${act.userName} a lăsat un comentariu la proiectul "${proj.name}"`,
         time: Date.now(),
@@ -381,6 +383,10 @@ export default function App() {
         const userInEventTeam = e.team && e.team.includes(myMemberId);
         return isCreator || userInEventTeam;
       });
+
+  const visibleNotifications = userRole === 'admin'
+    ? notifications
+    : notifications.filter(n => n.projectId && projects.some(p => p.id === n.projectId && p.team && p.team.includes(myMemberId)));
 
   const renderView = () => {
     console.log("DEBUG FRONTEND: userRole =", userRole, "currentUser =", currentUser?.email);
@@ -504,13 +510,13 @@ export default function App() {
       <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: C.primarySoft, borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, opacity: 0.7, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: '35vw', height: '35vw', background: C.coralSoft, borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, opacity: 0.6, pointerEvents: 'none' }} />
       {!isMobile ? (
-        <Sidebar view={view} setView={handleNavChange} unreadCount={notifications.filter(n => !n.read).length} theme={theme} setTheme={setTheme} user={currentUser} userRole={userRole} />
+        <Sidebar view={view} setView={handleNavChange} unreadCount={visibleNotifications.filter(n => !n.read).length} theme={theme} setTheme={setTheme} user={currentUser} userRole={userRole} />
       ) : (
-        <MobileHeader view={view} setView={handleNavChange} unreadCount={notifications.filter(n => !n.read).length} user={currentUser} userRole={userRole} />
+        <MobileHeader view={view} setView={handleNavChange} unreadCount={visibleNotifications.filter(n => !n.read).length} user={currentUser} userRole={userRole} />
       )}
 
       <NotificationsBell 
-        notifications={notifications} 
+        notifications={visibleNotifications} 
         setNotifications={setNotifications} 
         isMobile={isMobile} 
       />
