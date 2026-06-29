@@ -306,7 +306,7 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
                 </div>
               </div>
             </Card>
-            <FreeTimePanel events={events} team={team} date={TODAY_STR} isMobile={false} />
+            {userRole === 'admin' && <FreeTimePanel events={events} team={team} date={TODAY_STR} isMobile={false} />}
           </div>
         </div>
       )}

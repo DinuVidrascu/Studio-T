@@ -49,6 +49,11 @@ export default function App() {
   const [newCommentText, setNewCommentText] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [activeModalTab, setActiveModalTab] = useState('details');
+
+  const openOnActivity = (proj) => {
+    setActiveModalTab('activity');
+    setSelectedProject(proj);
+  };
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -441,6 +446,7 @@ export default function App() {
             onUpdateProject={handleUpdateProject}
             onDeleteProject={handleDeleteProject}
             onOpen={setSelectedProject}
+            onOpenActivity={openOnActivity}
             isMobile={isMobile}
             isLoading={isLoading}
             userRole={userRole}
