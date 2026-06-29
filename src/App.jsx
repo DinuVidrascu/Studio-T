@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { X, Trash2 } from "lucide-react";
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { db, isConfigured, auth } from "./utils/firebase";
 import LoginView from "./components/views/LoginView";
 
 // Utilities
-import { C, SERIF, SANS, DEF_PROJECTS, DEF_TEAM, DEF_EVENTS, STATUS_META } from "./utils/constants";
+import { C, SERIF, SANS, DEF_PROJECTS, DEF_TEAM, DEF_EVENTS, STATUS_META, PALETTE } from "./utils/constants";
 import { fmtDate, priorityLabel, priorityColor, useWindowWidth, daysLeft } from "./utils/helpers";
 
 // Layout components
@@ -54,6 +54,8 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [userRole, setUserRole] = useState('admin');
+  const [registeredUsers, setRegisteredUsers] = useState([]);
 
   const w = useWindowWidth();
   const isMobile = w < 768;
@@ -73,11 +75,23 @@ export default function App() {
       if (user) {
         try {
           const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+          let role = 'user';
+          if (userSnap.exists()) {
+            role = userSnap.data().role || 'user';
+          } else {
+            const usersSnap = await getDocs(collection(db, "users"));
+            if (usersSnap.empty) {
+              role = 'admin';
+            }
+          }
+          setUserRole(role);
           await setDoc(userRef, {
             uid: user.uid,
             displayName: user.displayName,
             email: user.email,
-            photoURL: user.photoURL
+            photoURL: user.photoURL,
+            role: role
           }, { merge: true });
         } catch (err) {
           console.error("Error setting user profile:", err);
@@ -121,10 +135,21 @@ export default function App() {
       }
     });
 
+    const unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
+      if (snapshot.empty) {
+        setRegisteredUsers([]);
+      } else {
+        const usrs = [];
+        snapshot.forEach((doc) => usrs.push(doc.data()));
+        setRegisteredUsers(usrs);
+      }
+    });
+
     return () => {
       unsubProjects();
       unsubTeam();
       unsubEvents();
+      unsubUsers();
     };
   }, [currentUser]);
 
@@ -325,14 +350,29 @@ export default function App() {
     }
   };
 
+  const myMember = team.find(t => t.userId === currentUser?.uid || t.email === currentUser?.email);
+  const myMemberId = myMember ? myMember.id : null;
+
+  const visibleProjects = userRole === 'admin'
+    ? projects
+    : projects.filter(p => p.team && p.team.includes(myMemberId));
+
+  const visibleEvents = userRole === 'admin'
+    ? events
+    : events.filter(e => {
+        const isAssociatedWithVisibleProject = visibleProjects.some(p => p.id === e.projectId);
+        const userInEventTeam = e.team && e.team.includes(myMemberId);
+        return isAssociatedWithVisibleProject || userInEventTeam;
+      });
+
   const renderView = () => {
     switch (view) {
       case 'dashboard':
         return (
           <Dashboard
-            projects={projects}
+            projects={visibleProjects}
             team={team}
-            events={events}
+            events={visibleEvents}
             onOpen={setSelectedProject}
             onAdd={() => setShowAddProject(true)}
             onUpdateProject={handleUpdateProject}
@@ -340,35 +380,38 @@ export default function App() {
             onNavigate={handleNavigate}
             isMobile={isMobile}
             isLoading={isLoading}
+            userRole={userRole}
           />
         );
       case 'gantt':
         return (
           <GanttView
-            projects={projects}
+            projects={visibleProjects}
             team={team}
             onOpen={setSelectedProject}
             onUpdateProject={handleUpdateProject}
             onAdd={() => setShowAddProject(true)}
             isMobile={isMobile}
+            userRole={userRole}
           />
         );
       case 'calendar':
         return (
           <CalendarView
-            projects={projects}
+            projects={visibleProjects}
             team={team}
-            events={events}
+            events={visibleEvents}
             onAddEvent={handleAddEvent}
             onDeleteEvent={handleDeleteEvent}
             isMobile={isMobile}
+            userRole={userRole}
           />
         );
       case 'projects':
         return (
           <ProjectsView
             defaultFilter={projectsFilter}
-            projects={projects}
+            projects={visibleProjects}
             team={team}
             onAddProject={handleAddProject}
             onUpdateProject={handleUpdateProject}
@@ -376,26 +419,30 @@ export default function App() {
             onOpen={setSelectedProject}
             isMobile={isMobile}
             isLoading={isLoading}
+            userRole={userRole}
           />
         );
       case 'team':
         return (
           <TeamView
             team={team}
-            projects={projects}
+            projects={visibleProjects}
             onAddTeamMember={handleAddTeamMember}
             onDeleteTeamMember={handleDeleteTeamMember}
             onEditTeamMember={setEditingTeamMember}
             isMobile={isMobile}
             isLoading={isLoading}
+            userRole={userRole}
+            registeredUsers={registeredUsers}
           />
         );
       case 'reports':
         return (
           <ReportsView
-            projects={projects}
+            projects={visibleProjects}
             team={team}
             isMobile={isMobile}
+            userRole={userRole}
           />
         );
       case 'settings':
@@ -437,9 +484,9 @@ export default function App() {
       <div style={{ position: 'absolute', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: C.primarySoft, borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, opacity: 0.7, pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: '-10%', right: '-5%', width: '35vw', height: '35vw', background: C.coralSoft, borderRadius: '50%', filter: 'blur(80px)', zIndex: 0, opacity: 0.6, pointerEvents: 'none' }} />
       {!isMobile ? (
-        <Sidebar view={view} setView={handleNavChange} unreadCount={notifications.filter(n => !n.read).length} theme={theme} setTheme={setTheme} user={currentUser} />
+        <Sidebar view={view} setView={handleNavChange} unreadCount={notifications.filter(n => !n.read).length} theme={theme} setTheme={setTheme} user={currentUser} userRole={userRole} />
       ) : (
-        <MobileHeader view={view} setView={handleNavChange} unreadCount={notifications.filter(n => !n.read).length} user={currentUser} />
+        <MobileHeader view={view} setView={handleNavChange} unreadCount={notifications.filter(n => !n.read).length} user={currentUser} userRole={userRole} />
       )}
 
       <NotificationsBell 
@@ -607,6 +654,30 @@ export default function App() {
                       />
                     </FField>
                   </div>
+                  <FField label="Culoare branding">
+                    <div style={{ display: 'flex', gap: 6, paddingTop: 6 }}>
+                      {PALETTE.map(c => (
+                        <button type="button" key={c} onClick={() => {
+                          logActivity(selectedProject, `A schimbat culoarea proiectului`, 'color', { color: c });
+                        }} style={{
+                          width: 22, height: 22, borderRadius: '50%', background: c, 
+                          border: selectedProject.color === c ? '2px solid ' + C.ink : 'none', cursor: 'pointer'
+                        }} />
+                      ))}
+                    </div>
+                  </FField>
+                  {myMemberId && !(selectedProject.team || []).includes(myMemberId) && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newTeam = [...(selectedProject.team || []), myMemberId];
+                        logActivity(selectedProject, `S-a alocat pe sine ca responsabil pe proiect`, 'member', { team: newTeam });
+                      }}
+                      style={{ background: C.primary, color: C.paper, border: 'none', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13, marginTop: 10, fontFamily: SANS }}
+                    >
+                      Alocă-mă pe mine ca responsabil
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -829,6 +900,7 @@ export default function App() {
           onAdd={proj => { handleAddProject(proj); setShowAddProject(false); }}
           onClose={() => setShowAddProject(false)}
           isMobile={isMobile}
+          defaultSelectedTeam={myMemberId ? [myMemberId] : []}
         />
       )}
 

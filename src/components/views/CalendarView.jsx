@@ -114,7 +114,7 @@ function FreeTimePanel({ events, team, date, isMobile }) {
   );
 }
 
-export default function CalendarView({ projects, team, events, onAddEvent, onDeleteEvent, isMobile }) {
+export default function CalendarView({ projects, team, events, onAddEvent, onDeleteEvent, isMobile, userRole = 'admin' }) {
   const [weekStart, setWeekStart] = useState(getWeekStart(TODAY_STR));
   const [selectedDay, setSelectedDay] = useState(TODAY_STR);
   const [selectedEv, setSelectedEv] = useState(null);
@@ -153,7 +153,9 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
           <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28, fontWeight: 600, color: C.ink, fontFamily: SERIF, letterSpacing: '-0.5px' }}>Calendar</h1>
           {!isMobile && <p style={{ margin: '6px 0 0', color: C.inkSoft, fontSize: 14, fontFamily: SANS }}>Programari, sedinte si timp liber</p>}
         </div>
-        <AddBtn onClick={() => { setAddDate(selectedDay); setShowAdd(true); }} label={isMobile ? 'Adauga' : 'Eveniment nou'} isMobile={isMobile} />
+        {userRole === 'admin' && (
+          <AddBtn onClick={() => { setAddDate(selectedDay); setShowAdd(true); }} label={isMobile ? 'Adauga' : 'Eveniment nou'} isMobile={isMobile} />
+        )}
       </div>
 
       {isMobile ? (
@@ -256,8 +258,8 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
                   const isToday = date === TODAY_STR;
                   const evCnt = events.filter(e => e.date === date).length;
                   return (
-                    <div key={date} onClick={() => { setAddDate(date); setShowAdd(true); }} style={{ 
-                      flex: 1, padding: '11px 4px', textAlign: 'center', cursor: 'pointer',
+                    <div key={date} onClick={() => { if (userRole === 'admin') { setAddDate(date); setShowAdd(true); } }} style={{ 
+                      flex: 1, padding: '11px 4px', textAlign: 'center', cursor: userRole === 'admin' ? 'pointer' : 'default',
                       borderRight: idx < 6 ? '1px solid ' + C.lineSoft : 'none', background: isToday ? C.primarySoft : 'transparent' 
                     }}>
                       <div style={{ fontSize: 10, color: C.inkFaint, marginBottom: 4, fontFamily: SANS }}>{DAY_S[idx]}</div>
@@ -315,7 +317,7 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
           team={team} 
           projects={projects} 
           onClose={() => setSelectedEv(null)} 
-          onDelete={() => { onDeleteEvent(selectedEv.id); setSelectedEv(null); }} 
+          onDelete={userRole === 'admin' ? () => { onDeleteEvent(selectedEv.id); setSelectedEv(null); } : undefined} 
           isMobile={isMobile}
         />
       )}

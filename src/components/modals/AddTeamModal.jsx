@@ -10,18 +10,38 @@ const inputStyle = {
   boxSizing: 'border-box', fontFamily: SANS 
 };
 
-export default function AddTeamModal({ member, onAdd, onEdit, onClose, isMobile }) {
+export default function AddTeamModal({ member, onAdd, onEdit, onClose, isMobile, registeredUsers = [] }) {
   const [name, setName] = useState(member ? member.name : '');
   const [role, setRole] = useState(member ? member.role : '');
   const [initials, setInitials] = useState(member ? member.initials : '');
   const [color, setColor] = useState(member ? member.color : PALETTE[0]);
+  const [userId, setUserId] = useState(member ? member.userId : '');
+  const [email, setEmail] = useState(member ? member.email : '');
+  const [photoURL, setPhotoURL] = useState(member ? member.photoURL : '');
+
+  const handleSelectUser = (uid) => {
+    if (!uid) {
+      setUserId('');
+      setEmail('');
+      setPhotoURL('');
+      return;
+    }
+    const u = registeredUsers.find(user => user.uid === uid);
+    if (u) {
+      setUserId(u.uid);
+      setEmail(u.email || '');
+      setPhotoURL(u.photoURL || '');
+      setName(u.displayName || '');
+      setInitials((u.displayName || '').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2));
+    }
+  };
 
   const handleSubmit = e => {
     e.preventDefault();
     if (!name.trim() || !role.trim()) return;
     const data = {
       name, role, initials: initials.trim() || name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
-      color
+      color, userId, email, photoURL
     };
     if (member) {
       onEdit({ ...member, ...data });
@@ -42,6 +62,20 @@ export default function AddTeamModal({ member, onAdd, onEdit, onClose, isMobile 
         </button>
       </div>
       <form onSubmit={handleSubmit} style={{ display:'flex',flexDirection:'column',gap:14 }}>
+        {!member && registeredUsers.length > 0 && (
+          <FField label="Înregistrează un utilizator din baza de date">
+            <select 
+              value={userId}
+              onChange={e => handleSelectUser(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="">-- Selectează un utilizator înregistrat --</option>
+              {registeredUsers.map(u => (
+                <option key={u.uid} value={u.uid}>{u.displayName} ({u.email})</option>
+              ))}
+            </select>
+          </FField>
+        )}
         <FField label="Nume Complet">
           <input type="text" value={name} onChange={e=>setName(e.target.value)} required placeholder="Ex. Dumitru Vicol" style={inputStyle} />
         </FField>

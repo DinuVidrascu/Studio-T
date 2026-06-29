@@ -10,7 +10,7 @@ import Badge from "../common/Badge";
 import Avatar from "../common/Avatar";
 import Skeleton from "../common/Skeleton";
 
-function ProjRow({ p, onClick, menuOpenId, setMenuOpenId, onOpen, onDelete }) {
+function ProjRow({ p, onClick, menuOpenId, setMenuOpenId, onOpen, onDelete, userRole = 'admin' }) {
   const d = daysLeft(p.endDate);
   return (
     <div onClick={onClick} style={{ 
@@ -33,12 +33,14 @@ function ProjRow({ p, onClick, menuOpenId, setMenuOpenId, onOpen, onDelete }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Badge status={p.status} />
+        {userRole === 'admin' && (
           <button 
             onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
             style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2 }}
           >
             <MoreHorizontal size={16} />
           </button>
+        )}
         </div>
         <span style={{ fontSize: 11, color: d <= 7 && p.status !== 'completed' ? C.coral : C.inkFaint, fontWeight: 500, fontFamily: SANS }}>
           {d < 0 ? 'depasit' : d === 0 ? 'azi!' : d + ' zile'}
@@ -67,7 +69,7 @@ function ProjRow({ p, onClick, menuOpenId, setMenuOpenId, onOpen, onDelete }) {
   );
 }
 
-export default function Dashboard({ projects, team, events, onOpen, onAdd, onDeleteProject, onNavigate, isMobile, isLoading }) {
+export default function Dashboard({ projects, team, events, onOpen, onAdd, onDeleteProject, onNavigate, isMobile, isLoading, userRole = 'admin' }) {
   const [menuOpenId, setMenuOpenId] = useState(null);
 
   if (isLoading) {
@@ -167,7 +169,7 @@ export default function Dashboard({ projects, team, events, onOpen, onAdd, onDel
         <div>
           <SectionTitle count={active.length}>Proiecte active</SectionTitle>
           <Card style={{ overflow:'hidden' }}>
-            {active.map(p=><ProjRow key={p.id} p={p} onClick={()=>onOpen(p)} menuOpenId={menuOpenId} setMenuOpenId={setMenuOpenId} onOpen={onOpen} onDelete={onDeleteProject} />)}
+            {active.map(p=><ProjRow key={p.id} p={p} onClick={()=>onOpen(p)} menuOpenId={menuOpenId} setMenuOpenId={setMenuOpenId} onOpen={onOpen} onDelete={onDeleteProject} userRole={userRole} />)}
             {!active.length && <div style={{ padding:26, textAlign:'center', color:C.inkFaint, fontSize:13, fontFamily:SANS }}>Niciun proiect activ</div>}
           </Card>
         </div>
@@ -190,12 +192,14 @@ export default function Dashboard({ projects, team, events, onOpen, onAdd, onDel
                       background:urg?C.coralSoft:C.lineSoft, color:urg?C.coral:C.inkSoft }}>
                       {d<0?'depasit':d===0?'azi!':d<=7?d+' zile':d+' zile'}
                     </span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
-                      style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2 }}
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
+                    {userRole === 'admin' && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
+                        style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2 }}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                    )}
                   </div>
                   
                   {menuOpenId === p.id && (

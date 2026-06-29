@@ -24,10 +24,10 @@ service cloud.firestore {
       allow write: if request.auth.uid == userId || isAdmin();
     }
 
-    // Projects (only Admin can write, all authenticated users can read)
+    // Projects (any authenticated user can write, all authenticated users can read)
     match /projects/{projectId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
 
     // Team members (only Admin can write, all authenticated users can read)

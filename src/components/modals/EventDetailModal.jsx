@@ -102,15 +102,17 @@ export default function EventDetailModal({ event: ev, team, projects, onClose, o
           <span style={{ fontSize: 12, color: C.inkFaint, fontFamily: SANS }}>Niciun participant.</span>
         )}
       </div>
-      <div style={{ borderTop: '1px solid ' + C.line, paddingTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-        <button onClick={onDelete} style={{ 
-          display: 'flex', alignItems: 'center', gap: 6, background: C.coralSoft, color: C.coral, 
-          border: 'none', padding: '8px 14px', borderRadius: 10, fontSize: 12.5, 
-          fontWeight: 600, cursor: 'pointer', fontFamily: SANS 
-        }}>
-          <Trash2 size={14} /> Sterge eveniment
-        </button>
-      </div>
+      {onDelete && (
+        <div style={{ borderTop: '1px solid ' + C.line, paddingTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={onDelete} style={{ 
+            display: 'flex', alignItems: 'center', gap: 6, background: C.coralSoft, color: C.coral, 
+            border: 'none', padding: '8px 14px', borderRadius: 10, fontSize: 12.5, 
+            fontWeight: 600, cursor: 'pointer', fontFamily: SANS 
+          }}>
+            <Trash2 size={14} /> Sterge eveniment
+          </button>
+        </div>
+      )}
     </ModalWrap>
   );
 }

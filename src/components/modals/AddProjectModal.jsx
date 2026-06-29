@@ -11,7 +11,7 @@ const inputStyle = {
   boxSizing: 'border-box', fontFamily: SANS 
 };
 
-export default function AddProjectModal({ team, onAdd, onClose, isMobile }) {
+export default function AddProjectModal({ team, onAdd, onClose, isMobile, defaultSelectedTeam = [] }) {
   const [name, setName] = useState('');
   const [client, setClient] = useState('');
   const [status, setStatus] = useState('planning');
@@ -19,7 +19,7 @@ export default function AddProjectModal({ team, onAdd, onClose, isMobile }) {
   const [endDate, setEndDate] = useState(TODAY_STR);
   const [progress, setProgress] = useState(0);
   const [priority, setPriority] = useState('medium');
-  const [selectedTeam, setSelectedTeam] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState(defaultSelectedTeam);
   const [color, setColor] = useState(PALETTE[0]);
 
   const handleSubmit = e => {

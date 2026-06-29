@@ -4,7 +4,7 @@ import { daysLeft, fmtDate } from "../../utils/helpers";
 import Card from "../common/Card";
 import AddBtn from "../common/AddBtn";
 
-export default function GanttView({ projects, team, onOpen, onUpdateProject, onAdd, isMobile }) {
+export default function GanttView({ projects, team, onOpen, onUpdateProject, onAdd, isMobile, userRole = 'admin' }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, proj: null });
   
@@ -221,7 +221,7 @@ export default function GanttView({ projects, team, onOpen, onUpdateProject, onA
                       )}
 
                       {/* Drag handles (shown on hover or when dragging) */}
-                      {(isHovered || isActiveDrag) && !isMobile && (
+                      {(isHovered || isActiveDrag) && !isMobile && userRole === 'admin' && (
                         <>
                           <circle 
                             cx={bx} cy={y + RH / 2} r={7} 

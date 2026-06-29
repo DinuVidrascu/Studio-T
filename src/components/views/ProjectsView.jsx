@@ -12,7 +12,7 @@ import EmptyState from "../common/EmptyState";
 import Skeleton from "../common/Skeleton";
 import { Inbox } from "lucide-react";
 
-export default function ProjectsView({ defaultFilter = 'all', projects, team, onAddProject, onUpdateProject, onDeleteProject, onOpen, isMobile, isLoading }) {
+export default function ProjectsView({ defaultFilter = 'all', projects, team, onAddProject, onUpdateProject, onDeleteProject, onOpen, isMobile, isLoading, userRole = 'admin' }) {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' sau 'kanban'
   const [filterStatus, setFilterStatus] = useState(defaultFilter);
   const [showAdd, setShowAdd] = useState(false);
@@ -72,8 +72,8 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
           opacity: draggedId === p.id ? 0.5 : 1,
           border: isKanban ? '1px solid ' + C.lineSoft : 'none'
         }}
-        draggable={isKanban}
-        onDragStart={(e) => isKanban && handleDragStart(e, p.id)}
+        draggable={userRole === 'admin' && isKanban}
+        onDragStart={(e) => userRole === 'admin' && isKanban && handleDragStart(e, p.id)}
         onDragEnd={handleDragEnd}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -87,12 +87,14 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <button 
-              onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
-              style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 4 }}
-            >
-              <MoreHorizontal size={16} />
-            </button>
+            {userRole === 'admin' && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === p.id ? null : p.id); }}
+                style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 4 }}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            )}
             
             {menuOpenId === p.id && (
               <div 
@@ -236,8 +238,8 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
                 icon={Inbox} 
                 title="Niciun proiect găsit" 
                 description="Nu ai niciun proiect care să corespundă acestui filtru." 
-                actionLabel="Proiect nou" 
-                onAction={() => setShowAdd(true)} 
+                actionLabel={userRole === 'admin' ? "Proiect nou" : undefined} 
+                onAction={userRole === 'admin' ? () => setShowAdd(true) : undefined} 
               />
             </div>
           ) : (
@@ -280,8 +282,8 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
                         title="Gol" 
                         description="Trage un proiect aici" 
                         compact={true} 
-                        actionLabel="Crează"
-                        onAction={() => setShowAdd(true)}
+                        actionLabel={userRole === 'admin' ? "Crează" : undefined}
+                        onAction={userRole === 'admin' ? () => setShowAdd(true) : undefined}
                       />
                     </div>
                   )}

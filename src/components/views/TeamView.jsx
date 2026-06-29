@@ -9,7 +9,7 @@ import EmptyState from "../common/EmptyState";
 import Skeleton from "../common/Skeleton";
 import { Ghost } from "lucide-react";
 
-export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeamMember, onEditTeamMember, isMobile, isLoading }) {
+export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeamMember, onEditTeamMember, isMobile, isLoading, userRole = 'admin', registeredUsers = [] }) {
   const [showAdd, setShowAdd] = useState(false);
 
   return (
@@ -19,7 +19,9 @@ export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeam
           <h1 style={{ margin:0, fontSize:isMobile?22:28, fontWeight:600, color:C.ink, fontFamily:SERIF, letterSpacing:'-0.5px' }}>Echipa</h1>
           {!isMobile && <p style={{ margin:'6px 0 0', color:C.inkSoft, fontSize:14, fontFamily:SANS }}>Membrii studioului si proiectele alocate</p>}
         </div>
-        <AddBtn onClick={() => setShowAdd(true)} label="Membru nou" isMobile={isMobile} />
+        {userRole === 'admin' && (
+          <AddBtn onClick={() => setShowAdd(true)} label="Membru nou" isMobile={isMobile} />
+        )}
       </div>
 
       {isLoading ? (
@@ -48,14 +50,16 @@ export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeam
             const activeProj = projects.filter(p => p.team && p.team.includes(m.id) && p.status !== 'completed');
           return (
             <Card key={m.id} style={{ padding: isMobile ? '16px 10px' : 20, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 2 }}>
-                <button onClick={() => onEditTeamMember(m)} style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center' }}>
-                  <Edit3 size={13} />
-                </button>
-                <button onClick={() => onDeleteTeamMember(m.id)} style={{ background: 'transparent', border: 'none', color: C.inkFaint, cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center' }}>
-                  <Trash2 size={13} />
-                </button>
-              </div>
+              {userRole === 'admin' && (
+                <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 2 }}>
+                  <button onClick={() => onEditTeamMember(m)} style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center' }}>
+                    <Edit3 size={13} />
+                  </button>
+                  <button onClick={() => onDeleteTeamMember(m.id)} style={{ background: 'transparent', border: 'none', color: C.inkFaint, cursor: 'pointer', padding: 6, display: 'flex', alignItems: 'center' }}>
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )}
               <Avatar p={m} size={isMobile ? 46 : 56} />
               <h3 style={{ margin: '10px 0 2px', fontSize: isMobile ? 13 : 15, fontWeight: 600, color: C.ink, fontFamily: SANS, lineHeight: 1.2 }}>{m.name}</h3>
               <span style={{ fontSize: isMobile ? 10 : 11, color: C.inkSoft, fontWeight: 500, fontFamily: SANS, marginBottom: isMobile ? 0 : 0 }}>{m.role}</span>
@@ -97,7 +101,14 @@ export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeam
       </div>
       )}
 
-      {showAdd && <AddTeamModal onAdd={m => { onAddTeamMember(m); setShowAdd(false); }} onClose={() => setShowAdd(false)} isMobile={isMobile} />}
+      {showAdd && (
+        <AddTeamModal 
+          onAdd={m => { onAddTeamMember(m); setShowAdd(false); }} 
+          onClose={() => setShowAdd(false)} 
+          isMobile={isMobile}
+          registeredUsers={registeredUsers}
+        />
+      )}
     </div>
   );
 }
