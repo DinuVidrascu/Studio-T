@@ -151,11 +151,11 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: isMobile ? 14 : 22 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28, fontWeight: 600, color: C.ink, fontFamily: SERIF, letterSpacing: '-0.5px' }}>Calendar</h1>
-          {!isMobile && <p style={{ margin: '6px 0 0', color: C.inkSoft, fontSize: 14, fontFamily: SANS }}>Programari, sedinte si timp liber</p>}
+          {!isMobile && <p style={{ margin: '6px 0 0', color: C.inkSoft, fontSize: 14, fontFamily: SANS }}>
+            {userRole === 'admin' ? 'Programari, sedinte si timp liber' : 'Programul tău — adaugă ședințe și convorbiri'}
+          </p>}
         </div>
-        {userRole === 'admin' && (
-          <AddBtn onClick={() => { setAddDate(selectedDay); setShowAdd(true); }} label={isMobile ? 'Adauga' : 'Eveniment nou'} isMobile={isMobile} />
-        )}
+        <AddBtn onClick={() => { setAddDate(selectedDay); setShowAdd(true); }} label={isMobile ? 'Adaugă' : 'Eveniment nou'} isMobile={isMobile} />
       </div>
 
       {isMobile ? (

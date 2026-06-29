@@ -247,6 +247,17 @@ export default function App() {
     } else {
       setEvents(prev => [...prev, evData]);
     }
+    // Notify admin when a user creates an event with tagged members
+    if (userRole !== 'admin' && newEv.team && newEv.team.length > 0) {
+      const creatorName = currentUser?.displayName || currentUser?.email || 'Un utilizator';
+      setNotifications(prev => [{
+        id: `ev-${newEv.id}-${Date.now()}`,
+        type: 'calendar',
+        message: `📅 ${creatorName} a solicitat o întâlnire: "${newEv.title}" pe ${newEv.date} la ${newEv.startTime}.`,
+        time: Date.now(),
+        read: false
+      }, ...prev]);
+    }
   };
 
   const handleDeleteEvent = async (evId) => {
