@@ -23,6 +23,7 @@ import Toast from "./components/common/Toast";
 
 // Modals
 import AddProjectModal from "./components/modals/AddProjectModal";
+import EventRequestModal from "./components/modals/EventRequestModal";
 import AddTeamModal from "./components/modals/AddTeamModal";
 
 // Views
@@ -60,6 +61,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [userRole, setUserRole] = useState('user');
+  const [userApproved, setUserApproved] = useState(false);
   const [registeredUsers, setRegisteredUsers] = useState([]);
 
   const w = useWindowWidth();
@@ -73,36 +75,68 @@ export default function App() {
   useEffect(() => {
     if (!isConfigured) {
       setAuthLoading(false);
+      setUserApproved(true); // bypass approval in local dev
       return;
     }
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let userDocUnsubscribe = null;
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      // Cleanup previous user doc listener
+      if (userDocUnsubscribe) { userDocUnsubscribe(); userDocUnsubscribe = null; }
+
       setCurrentUser(user);
       if (user) {
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
-          let role = 'user';
-          if (userSnap.exists()) {
-            role = userSnap.data().role || 'user';
+
+          if (!userSnap.exists()) {
+            // Brand new user — create doc with approved: false
+            await setDoc(userRef, {
+              uid: user.uid,
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL,
+              role: 'user',
+              approved: false,
+              createdAt: Date.now()
+            });
+            setUserRole('user');
+            setUserApproved(false);
+          } else {
+            const data = userSnap.data();
+            setUserRole(data.role || 'user');
+            setUserApproved(data.approved === true);
+            // Update display info
+            await setDoc(userRef, {
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL
+            }, { merge: true });
           }
-          setUserRole(role);
-          await setDoc(userRef, {
-            uid: user.uid,
-            displayName: user.displayName,
-            email: user.email,
-            photoURL: user.photoURL,
-            role: role
-          }, { merge: true });
+
+          // Real-time listener — detects when admin approves the user
+          userDocUnsubscribe = onSnapshot(userRef, (snap) => {
+            if (snap.exists()) {
+              const d = snap.data();
+              setUserRole(d.role || 'user');
+              setUserApproved(d.approved === true);
+            }
+          });
         } catch (err) {
           console.error("Error setting user profile:", err);
           setUserRole('user');
+          setUserApproved(false);
         }
       } else {
         setUserRole('user');
+        setUserApproved(false);
       }
       setAuthLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (userDocUnsubscribe) userDocUnsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -238,9 +272,14 @@ export default function App() {
   }, [projects, team]);
 
   const handleAddEvent = async (newEv) => {
+    // Non-admin events with tagged members go into 'pending' state
+    const isPending = userRole !== 'admin' && newEv.team && newEv.team.length > 0;
     const evData = {
       ...newEv,
-      creatorId: currentUser ? currentUser.uid : null
+      creatorId: currentUser ? currentUser.uid : null,
+      creatorEmail: currentUser ? currentUser.email : null,
+      creatorUserId: currentUser ? currentUser.uid : null,
+      status: isPending ? 'pending' : 'confirmed'
     };
     if (isConfigured) {
       await setDoc(doc(db, "events", newEv.id), evData);
@@ -248,16 +287,70 @@ export default function App() {
       setEvents(prev => [...prev, evData]);
     }
     // Notify admin when a user creates an event with tagged members
-    if (userRole !== 'admin' && newEv.team && newEv.team.length > 0) {
+    if (isPending) {
       const creatorName = currentUser?.displayName || currentUser?.email || 'Un utilizator';
       setNotifications(prev => [{
-        id: `ev-${newEv.id}-${Date.now()}`,
+        id: `ev-req-${newEv.id}-${Date.now()}`,
         type: 'calendar',
         message: `📅 ${creatorName} a solicitat o întâlnire: "${newEv.title}" pe ${newEv.date} la ${newEv.startTime}.`,
         time: Date.now(),
         read: false
       }, ...prev]);
     }
+  };
+
+  const handleAcceptEvent = async (ev) => {
+    const updated = { ...ev, status: 'confirmed' };
+    if (isConfigured) {
+      await updateDoc(doc(db, "events", ev.id), { status: 'confirmed' });
+    } else {
+      setEvents(prev => prev.map(e => e.id === ev.id ? updated : e));
+    }
+    // Notify the creator
+    setNotifications(prev => [{
+      id: `ev-acc-${ev.id}-${Date.now()}`,
+      projectId: null,
+      type: 'calendar',
+      message: `✅ Înâlnirea "${ev.title}" pe ${ev.date} la ${ev.startTime} a fost acceptată!`,
+      time: Date.now(),
+      read: false
+    }, ...prev]);
+  };
+
+  const handleRefuseEvent = async (ev, mode) => {
+    if (mode === 'refuse') {
+      if (isConfigured) {
+        await updateDoc(doc(db, "events", ev.id), { status: 'refused' });
+      } else {
+        setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, status: 'refused' } : e));
+      }
+      setNotifications(prev => [{
+        id: `ev-ref-${ev.id}-${Date.now()}`,
+        projectId: null,
+        type: 'calendar',
+        message: `❌ Înâlnirea "${ev.title}" pe ${ev.date} a fost refuzată de Lead.`,
+        time: Date.now(),
+        read: false
+      }, ...prev]);
+    }
+    // 'dismiss' just closes the modal without changing status
+  };
+
+  const handleProposeNewTime = async (ev, newDate, newStart, newEnd) => {
+    const updated = { ...ev, date: newDate, startTime: newStart, endTime: newEnd, status: 'counter-proposed' };
+    if (isConfigured) {
+      await updateDoc(doc(db, "events", ev.id), { date: newDate, startTime: newStart, endTime: newEnd, status: 'counter-proposed' });
+    } else {
+      setEvents(prev => prev.map(e => e.id === ev.id ? updated : e));
+    }
+    setNotifications(prev => [{
+      id: `ev-prop-${ev.id}-${Date.now()}`,
+      projectId: null,
+      type: 'calendar',
+      message: `📆 Lead propune altă dată pentru "${ev.title}": ${newDate} la ${newStart}–${newEnd}.`,
+      time: Date.now(),
+      read: false
+    }, ...prev]);
   };
 
   const handleDeleteEvent = async (evId) => {
@@ -393,16 +486,22 @@ export default function App() {
     : projects.filter(p => p.team && p.team.includes(myMemberId));
 
   const visibleEvents = userRole === 'admin'
-    ? events
+    ? events.filter(e => e.status !== 'pending' && e.status !== 'refused')
     : events.filter(e => {
         const isCreator = e.creatorId === currentUser?.uid;
         const userInEventTeam = e.team && e.team.includes(myMemberId);
-        return isCreator || userInEventTeam;
+        const isVisible = e.status !== 'refused';
+        return isVisible && (isCreator || (userInEventTeam && e.status === 'confirmed'));
       });
+
+  // Pending event requests for admin to approve
+  const pendingRequests = userRole === 'admin'
+    ? events.filter(e => e.status === 'pending')
+    : [];
 
   const visibleNotifications = userRole === 'admin'
     ? notifications
-    : notifications.filter(n => n.projectId && projects.some(p => p.id === n.projectId && p.team && p.team.includes(myMemberId)));
+    : notifications.filter(n => !n.projectId || projects.some(p => p.id === n.projectId && p.team && p.team.includes(myMemberId)));
 
   const renderView = () => {
     console.log("DEBUG FRONTEND: userRole =", userRole, "currentUser =", currentUser?.email);
@@ -521,6 +620,81 @@ export default function App() {
     return <LoginView />;
   }
 
+  // User logged in but not yet approved by admin
+  if (isConfigured && currentUser && !userApproved) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', width: '100vw', background: '#0d1117', fontFamily: SANS,
+        padding: 24, boxSizing: 'border-box'
+      }}>
+        {/* Animated background blobs */}
+        <div style={{ position: 'fixed', top: '-10%', left: '-5%', width: '40vw', height: '40vw', background: C.primarySoft, borderRadius: '50%', filter: 'blur(80px)', opacity: 0.3, pointerEvents: 'none' }} />
+        <div style={{ position: 'fixed', bottom: '-10%', right: '-5%', width: '35vw', height: '35vw', background: C.coralSoft, borderRadius: '50%', filter: 'blur(80px)', opacity: 0.3, pointerEvents: 'none' }} />
+
+        <div style={{
+          background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24,
+          padding: isMobile ? '32px 24px' : '48px 56px',
+          maxWidth: 460, width: '100%', textAlign: 'center', position: 'relative', zIndex: 1
+        }}>
+          {/* Spinning clock icon */}
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: `linear-gradient(135deg, ${C.primary}40, ${C.primary}15)`,
+            border: `2px solid ${C.primary}60`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 24px', fontSize: 36,
+            animation: 'pulse 2s ease-in-out infinite'
+          }}>⏳</div>
+
+          <h1 style={{ margin: '0 0 10px', fontSize: 26, fontWeight: 700, color: '#fff', fontFamily: SERIF, letterSpacing: '-0.5px' }}>
+            Cont în așteptare
+          </h1>
+          <p style={{ margin: '0 0 28px', fontSize: 15, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
+            Contul tău a fost creat cu succes! Acum trebuie să aștepți ca <strong style={{ color: C.primary }}>Lead-ul</strong> să îți aprobe accesul.
+          </p>
+
+          {/* User info card */}
+          <div style={{
+            background: 'rgba(255,255,255,0.07)', borderRadius: 14,
+            padding: '14px 18px', marginBottom: 28,
+            display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left'
+          }}>
+            {currentUser?.photoURL && (
+              <img src={currentUser.photoURL} alt="" style={{ width: 40, height: 40, borderRadius: '50%', border: `2px solid ${C.primary}` }} />
+            )}
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{currentUser?.displayName || 'Utilizator'}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>{currentUser?.email}</div>
+            </div>
+            <div style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: C.amber, background: `${C.amber}20`, padding: '4px 10px', borderRadius: 20, border: `1px solid ${C.amber}40` }}>
+              ÎN AȘTEPTARE
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', background: `${C.primary}10`, border: `1px solid ${C.primary}30`, borderRadius: 10, padding: '12px 14px', marginBottom: 24, textAlign: 'left' }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>💡</span>
+            <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+              Odată ce Lead-ul îți aprobă accesul, vei intra automat în aplicație — <strong style={{ color: 'rgba(255,255,255,0.9)' }}>fără să dai refresh</strong>.
+            </span>
+          </div>
+
+          <button
+            onClick={() => { auth.signOut(); }}
+            style={{
+              background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)',
+              border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+              padding: '10px 20px', fontSize: 13, cursor: 'pointer', fontFamily: SANS
+            }}
+          >
+            Deconectează-te
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: '100vh', width: '100%', background: C.paper, position: 'relative', overflow: 'hidden' }}>
       {/* Background blobs for glassmorphism effect */}
@@ -553,6 +727,18 @@ export default function App() {
 
       {isMobile && (
         <MobileBottomNav view={view} setView={handleNavChange} userRole={userRole} />
+      )}
+
+      {/* Event Request Approval Modal - shown to admin when users request meetings */}
+      {userRole === 'admin' && pendingRequests.length > 0 && (
+        <EventRequestModal
+          requests={pendingRequests}
+          team={team}
+          isMobile={isMobile}
+          onAccept={(ev) => { handleAcceptEvent(ev); }}
+          onRefuse={(ev, mode) => { handleRefuseEvent(ev, mode); }}
+          onProposeNewTime={(ev, d, s, e2) => { handleProposeNewTime(ev, d, s, e2); }}
+        />
       )}
 
       {/* Project detail modal */}
