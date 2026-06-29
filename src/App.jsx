@@ -374,6 +374,7 @@ export default function App() {
       });
 
   const renderView = () => {
+    console.log("DEBUG FRONTEND: userRole =", userRole, "currentUser =", currentUser?.email);
     switch (view) {
       case 'dashboard':
         return (
