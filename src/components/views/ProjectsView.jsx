@@ -139,6 +139,29 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
           </div>
         )}
 
+        {/* Comment CTA for non-admin users */}
+        {userRole !== 'admin' && (
+          <div
+            onClick={(e) => { e.stopPropagation(); onOpen(p); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: `linear-gradient(90deg, ${p.color}18, ${p.color}08)`,
+              border: `1px dashed ${p.color}60`,
+              borderRadius: 8, padding: '7px 12px',
+              marginBottom: 12, cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <span style={{ fontSize: 15 }}>💬</span>
+            <span style={{ fontSize: 11.5, fontWeight: 600, color: p.color, fontFamily: SANS }}>
+              Lasă un comentariu
+            </span>
+            <span style={{ fontSize: 11, color: C.inkFaint, fontFamily: SANS, marginLeft: 'auto' }}>
+              → Deschide
+            </span>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex' }}>
             {members.map((m, idx) => (

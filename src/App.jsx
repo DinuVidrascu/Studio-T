@@ -923,7 +923,7 @@ export default function App() {
                           Poți lăsa un comentariu!
                         </div>
                         <div style={{ fontSize: 11.5, color: C.inkSoft, fontFamily: SANS, lineHeight: 1.4 }}>
-                          Scrie mai jos — comentariul tău va ajunge direct la admin.
+                          Scrie mai jos — comentariul tău va ajunge direct la Lead.
                         </div>
                       </div>
                     </div>
@@ -968,7 +968,7 @@ export default function App() {
                     <div style={{ display: 'flex', gap: 6 }}>
                       <input 
                         type="text" 
-                        placeholder={userRole !== 'admin' ? 'Scrie un mesaj pentru admin...' : 'Scrie un comentariu...'}
+                        placeholder={userRole !== 'admin' ? 'Scrie un mesaj pentru Lead...' : 'Scrie un comentariu...'}
                         value={newCommentText}
                         onChange={e => setNewCommentText(e.target.value)}
                         onKeyDown={e => {
