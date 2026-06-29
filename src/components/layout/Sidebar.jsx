@@ -16,6 +16,7 @@ const NAV = [
 
 export default function Sidebar({ view, setView, unreadCount = 0, theme, setTheme, user, userRole = 'user' }) {
   const hasCritical = unreadCount > 0;
+  console.log("DEBUG SIDEBAR: userRole =", userRole);
 
   const filteredNav = NAV.filter(item => {
     if (userRole !== 'admin') {
