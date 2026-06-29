@@ -272,8 +272,9 @@ export default function App() {
   }, [projects, team]);
 
   const handleAddEvent = async (newEv) => {
-    // Non-admin events with tagged members go into 'pending' state
-    const isPending = userRole !== 'admin' && newEv.team && newEv.team.length > 0;
+    // If it has tagged members and the user is involved, mark as pending to get approval
+    const hasTagged = newEv.team && newEv.team.length > 0;
+    const isPending = hasTagged; // All events involving multiple people start as pending until confirmed
     const evData = {
       ...newEv,
       creatorId: currentUser ? currentUser.uid : null,
@@ -495,9 +496,17 @@ export default function App() {
       });
 
   // Pending event requests for admin to approve
-  const pendingRequests = userRole === 'admin'
-    ? events.filter(e => e.status === 'pending')
-    : [];
+  const pendingRequests = events.filter(e => {
+    if (e.status !== 'pending') return false;
+    // Don't show modal for events you created yourself
+    if (e.creatorUserId === currentUser?.uid) return false;
+    
+    // Admins see all pending requests from others
+    if (userRole === 'admin') return true;
+    
+    // Normal users see requests where they are tagged
+    return e.team && e.team.includes(myMemberId);
+  });
 
   const visibleNotifications = userRole === 'admin'
     ? notifications
@@ -724,20 +733,20 @@ export default function App() {
       }}>
         {renderView()}
       </main>
-
       {isMobile && (
         <MobileBottomNav view={view} setView={handleNavChange} userRole={userRole} />
       )}
 
-      {/* Event Request Approval Modal - shown to admin when users request meetings */}
-      {userRole === 'admin' && pendingRequests.length > 0 && (
-        <EventRequestModal
+      {/* Admin/User pending event requests modal */}
+      {pendingRequests.length > 0 && (
+        <EventRequestModal 
           requests={pendingRequests}
           team={team}
+          onAccept={handleAcceptEvent}
+          onRefuse={handleRefuseEvent}
+          onProposeNewTime={handleProposeNewTime}
           isMobile={isMobile}
-          onAccept={(ev) => { handleAcceptEvent(ev); }}
-          onRefuse={(ev, mode) => { handleRefuseEvent(ev, mode); }}
-          onProposeNewTime={(ev, d, s, e2) => { handleProposeNewTime(ev, d, s, e2); }}
+          userRole={userRole}
         />
       )}
 

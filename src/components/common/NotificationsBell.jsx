@@ -25,12 +25,10 @@ export default function NotificationsBell({ notifications, setNotifications, isM
   const unreadCount = notifications.filter(n => !n.read).length;
   const criticalCount = notifications.filter(n => !n.read && (n.severity === 'critical' || n.type === 'overdue')).length;
 
-  // Auto-open for 10s on first mount
+  // Auto-open for 10s if there are unread notifications
   useEffect(() => {
-    console.log("[NotificationsBell] Effect triggered. unreadCount:", unreadCount, "hasAutoOpened:", hasAutoOpened.current);
-    if (hasAutoOpened.current) return;
+    if (hasAutoOpened.current || unreadCount === 0) return;
     
-    console.log("[NotificationsBell] Auto-opening!");
     hasAutoOpened.current = true;
 
     setOpen(true);
@@ -44,7 +42,6 @@ export default function NotificationsBell({ notifications, setNotifications, isM
     }, 50);
 
     autoCloseRef.current = setTimeout(() => {
-      console.log("[NotificationsBell] Auto-closing after 10s");
       setOpen(false);
       setCountdown(0);
       clearInterval(intervalRef.current);

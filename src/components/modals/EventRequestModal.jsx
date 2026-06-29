@@ -3,7 +3,7 @@ import { X, Check, XCircle, Calendar, Clock, User } from "lucide-react";
 import { C, SERIF, SANS } from "../../utils/constants";
 import Avatar from "../common/Avatar";
 
-export default function EventRequestModal({ requests, team, onAccept, onRefuse, onProposeNewTime, isMobile }) {
+export default function EventRequestModal({ requests, team, onAccept, onRefuse, onProposeNewTime, isMobile, userRole }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [proposingTime, setProposingTime] = useState(false);
   const [newDate, setNewDate] = useState('');
@@ -185,13 +185,15 @@ export default function EventRequestModal({ requests, team, onAccept, onRefuse, 
               }}>
                 📆 Altă dată
               </button>
-              <button onClick={() => onRefuse(ev, 'refuse')} style={{
-                flex: 1, background: C.coralSoft, color: C.coral, border: `1.5px solid ${C.coral}40`,
-                borderRadius: 10, padding: '11px 0', fontWeight: 700, fontSize: 13,
-                cursor: 'pointer', fontFamily: SANS, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5
-              }}>
-                <XCircle size={14} /> Refuză
-              </button>
+              {userRole === 'admin' && (
+                <button onClick={() => onRefuse(ev, 'refuse')} style={{
+                  flex: 1, background: C.coralSoft, color: C.coral, border: `1.5px solid ${C.coral}40`,
+                  borderRadius: 10, padding: '11px 0', fontWeight: 700, fontSize: 13,
+                  cursor: 'pointer', fontFamily: SANS, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5
+                }}>
+                  <XCircle size={14} /> Refuză
+                </button>
+              )}
             </div>
           )}
 
