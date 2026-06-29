@@ -296,8 +296,17 @@ export default function App() {
       text,
       time: Date.now(),
       type,
-      userName: 'Manager'
+      userName: currentUser?.displayName || currentUser?.email || 'User'
     };
+    if (type === 'comment' && userRole !== 'admin') {
+      setNotifications(prev => [{
+        id: `msg-${proj.id}-${Date.now()}`,
+        type: 'update',
+        message: `${act.userName} a lăsat un comentariu la proiectul "${proj.name}"`,
+        time: Date.now(),
+        read: false
+      }, ...prev]);
+    }
     const updated = {
       ...proj,
       ...extraUpdates,
@@ -528,28 +537,41 @@ export default function App() {
         <ModalWrap onClose={() => setSelectedProject(null)} isMobile={isMobile}>
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:18 }}>
             <div style={{ flex: 1, marginRight: 16 }}>
-              <input 
-                type="text" 
-                value={selectedProject.client}
-                onChange={(e) => {
-                  const newProj = { ...selectedProject, client: e.target.value };
-                  setSelectedProject(newProj);
-                  handleUpdateProject(newProj);
-                }}
-                placeholder="Client..."
-                style={{ fontSize: 11, color: C.inkSoft, fontWeight: 500, fontFamily: SANS, background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: '0 0 2px 0', width: '100%' }}
-              />
-              <input 
-                type="text" 
-                value={selectedProject.name}
-                onChange={(e) => {
-                  const newProj = { ...selectedProject, name: e.target.value };
-                  setSelectedProject(newProj);
-                  handleUpdateProject(newProj);
-                }}
-                placeholder="Nume proiect..."
-                style={{ fontSize: 18, fontFamily: SERIF, color: C.ink, background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0, width: '100%', fontWeight: 600 }}
-              />
+              {userRole === 'admin' ? (
+                <>
+                  <input 
+                    type="text" 
+                    value={selectedProject.client}
+                    onChange={(e) => {
+                      const newProj = { ...selectedProject, client: e.target.value };
+                      setSelectedProject(newProj);
+                      handleUpdateProject(newProj);
+                    }}
+                    placeholder="Client..."
+                    style={{ fontSize: 11, color: C.inkSoft, fontWeight: 500, fontFamily: SANS, background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: '0 0 2px 0', width: '100%' }}
+                  />
+                  <input 
+                    type="text" 
+                    value={selectedProject.name}
+                    onChange={(e) => {
+                      const newProj = { ...selectedProject, name: e.target.value };
+                      setSelectedProject(newProj);
+                      handleUpdateProject(newProj);
+                    }}
+                    placeholder="Nume proiect..."
+                    style={{ fontSize: 18, fontFamily: SERIF, color: C.ink, background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0, width: '100%', fontWeight: 600 }}
+                  />
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 11, color: C.inkSoft, fontWeight: 500, fontFamily: SANS, margin: '0 0 2px 0' }}>
+                    {selectedProject.client || 'Client Nespecificat'}
+                  </div>
+                  <div style={{ fontSize: 18, fontFamily: SERIF, color: C.ink, fontWeight: 600, margin: 0 }}>
+                    {selectedProject.name}
+                  </div>
+                </>
+              )}
             </div>
             <button onClick={() => setSelectedProject(null)} style={{ background:C.lineSoft,border:'none',color:C.inkSoft,width:28,height:28,borderRadius:8,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}><X size={14}/></button>
           </div>
@@ -577,80 +599,105 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                     <FField label="Status">
-                      <select 
-                        value={selectedProject.status}
-                        onChange={(e) => {
-                          logActivity(selectedProject, `A schimbat statusul în "${STATUS_META[e.target.value].label}"`, 'status', { status: e.target.value });
-                        }}
-                        style={{
-                          padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
-                          background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600,
-                          outline: 'none', cursor: 'pointer', width: '100%'
-                        }}
-                      >
-                        {Object.entries(STATUS_META).map(([k, v]) => (
-                          <option key={k} value={k}>{v.label}</option>
-                        ))}
-                      </select>
+                      {userRole === 'admin' ? (
+                        <select 
+                          value={selectedProject.status}
+                          onChange={(e) => {
+                            logActivity(selectedProject, `A schimbat statusul în "${STATUS_META[e.target.value].label}"`, 'status', { status: e.target.value });
+                          }}
+                          style={{
+                            padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
+                            background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600,
+                            outline: 'none', cursor: 'pointer', width: '100%'
+                          }}
+                        >
+                          {Object.entries(STATUS_META).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.lineSoft, background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600 }}>
+                          {STATUS_META[selectedProject.status]?.label}
+                        </div>
+                      )}
                     </FField>
                     <FField label="Prioritate">
-                      <select 
-                        value={selectedProject.priority}
-                        onChange={(e) => {
-                          logActivity(selectedProject, `A schimbat prioritatea în "${priorityLabel(e.target.value)}"`, 'priority', { priority: e.target.value });
-                        }}
-                        style={{
-                          padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
-                          background: C.panelAlt, color: priorityColor(selectedProject.priority), fontFamily: SANS, fontSize: 13, fontWeight: 600,
-                          outline: 'none', cursor: 'pointer', width: '100%'
-                        }}
-                      >
-                        <option value="low" style={{ color: priorityColor('low') }}>{priorityLabel('low')}</option>
-                        <option value="medium" style={{ color: priorityColor('medium') }}>{priorityLabel('medium')}</option>
-                        <option value="high" style={{ color: priorityColor('high') }}>{priorityLabel('high')}</option>
-                      </select>
+                      {userRole === 'admin' ? (
+                        <select 
+                          value={selectedProject.priority}
+                          onChange={(e) => {
+                            logActivity(selectedProject, `A schimbat prioritatea în "${priorityLabel(e.target.value)}"`, 'priority', { priority: e.target.value });
+                          }}
+                          style={{
+                            padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
+                            background: C.panelAlt, color: priorityColor(selectedProject.priority), fontFamily: SANS, fontSize: 13, fontWeight: 600,
+                            outline: 'none', cursor: 'pointer', width: '100%'
+                          }}
+                        >
+                          <option value="low" style={{ color: priorityColor('low') }}>{priorityLabel('low')}</option>
+                          <option value="medium" style={{ color: priorityColor('medium') }}>{priorityLabel('medium')}</option>
+                          <option value="high" style={{ color: priorityColor('high') }}>{priorityLabel('high')}</option>
+                        </select>
+                      ) : (
+                        <div style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.lineSoft, background: C.panelAlt, color: priorityColor(selectedProject.priority), fontFamily: SANS, fontSize: 13, fontWeight: 600 }}>
+                          {priorityLabel(selectedProject.priority)}
+                        </div>
+                      )}
                     </FField>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                     <FField label="Data inceput">
-                      <input 
-                        type="date"
-                        value={selectedProject.startDate}
-                        onChange={(e) => {
-                          logActivity(selectedProject, `A actualizat data de început: ${fmtDate(e.target.value)}`, 'date', { startDate: e.target.value });
-                        }}
-                        style={{
-                          padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
-                          background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600,
-                          outline: 'none', width: '100%', boxSizing: 'border-box'
-                        }}
-                      />
+                      {userRole === 'admin' ? (
+                        <input 
+                          type="date"
+                          value={selectedProject.startDate}
+                          onChange={(e) => {
+                            logActivity(selectedProject, `A actualizat data de început: ${fmtDate(e.target.value)}`, 'date', { startDate: e.target.value });
+                          }}
+                          style={{
+                            padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
+                            background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600,
+                            outline: 'none', width: '100%', boxSizing: 'border-box'
+                          }}
+                        />
+                      ) : (
+                        <div style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.lineSoft, background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600 }}>
+                          {fmtDate(selectedProject.startDate) || 'Necompletat'}
+                        </div>
+                      )}
                     </FField>
                     <FField label="Data sfarsit (Deadline)">
-                      <input 
-                        type="date"
-                        value={selectedProject.endDate}
-                        onChange={(e) => {
-                          logActivity(selectedProject, `A actualizat data de sfârșit: ${fmtDate(e.target.value)}`, 'date', { endDate: e.target.value });
-                        }}
-                        style={{
-                          padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
-                          background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600,
-                          outline: 'none', width: '100%', boxSizing: 'border-box'
-                        }}
-                      />
+                      {userRole === 'admin' ? (
+                        <input 
+                          type="date"
+                          value={selectedProject.endDate}
+                          onChange={(e) => {
+                            logActivity(selectedProject, `A actualizat data de sfârșit: ${fmtDate(e.target.value)}`, 'date', { endDate: e.target.value });
+                          }}
+                          style={{
+                            padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.line,
+                            background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600,
+                            outline: 'none', width: '100%', boxSizing: 'border-box'
+                          }}
+                        />
+                      ) : (
+                        <div style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid ' + C.lineSoft, background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 13, fontWeight: 600 }}>
+                          {fmtDate(selectedProject.endDate) || 'Necompletat'}
+                        </div>
+                      )}
                     </FField>
                   </div>
                   <div>
                     <FField label="Progres">
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.inkSoft, marginBottom: 8, fontFamily: SANS }}>
-                        <span>Trage pentru a actualiza</span>
+                        <span>{userRole === 'admin' ? 'Trage pentru a actualiza' : 'Nivel de progres'}</span>
                         <span style={{ fontWeight: 600, color: selectedProject.color }}>{selectedProject.progress}%</span>
                       </div>
                       <input 
                         type="range" 
                         min="0" max="100" 
                         value={selectedProject.progress}
+                        disabled={userRole !== 'admin'}
                         onChange={(e) => {
                           const newProj = { ...selectedProject, progress: parseInt(e.target.value) };
                           setSelectedProject(newProj);
@@ -661,7 +708,7 @@ export default function App() {
                         onTouchEnd={() => {
                           logActivity(selectedProject, `A setat progresul la ${selectedProject.progress}%`, 'progress', { progress: selectedProject.progress });
                         }}
-                        style={{ width: '100%', accentColor: selectedProject.color, cursor: 'pointer' }}
+                        style={{ width: '100%', accentColor: selectedProject.color, cursor: userRole === 'admin' ? 'pointer' : 'default', opacity: userRole === 'admin' ? 1 : 0.7 }}
                       />
                     </FField>
                   </div>
@@ -669,15 +716,17 @@ export default function App() {
                     <div style={{ display: 'flex', gap: 6, paddingTop: 6 }}>
                       {PALETTE.map(c => (
                         <button type="button" key={c} onClick={() => {
-                          logActivity(selectedProject, `A schimbat culoarea proiectului`, 'color', { color: c });
+                          if (userRole === 'admin') {
+                            logActivity(selectedProject, `A schimbat culoarea proiectului`, 'color', { color: c });
+                          }
                         }} style={{
                           width: 22, height: 22, borderRadius: '50%', background: c, 
-                          border: selectedProject.color === c ? '2px solid ' + C.ink : 'none', cursor: 'pointer'
+                          border: selectedProject.color === c ? '2px solid ' + C.ink : 'none', cursor: userRole === 'admin' ? 'pointer' : 'default'
                         }} />
                       ))}
                     </div>
                   </FField>
-                  {myMemberId && !(selectedProject.team || []).includes(myMemberId) && (
+                  {userRole === 'admin' && myMemberId && !(selectedProject.team || []).includes(myMemberId) && (
                     <button 
                       type="button"
                       onClick={() => {
@@ -697,27 +746,29 @@ export default function App() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <label style={{ fontSize: 13, color: C.ink, fontWeight: 600, fontFamily: SANS }}>Echipa pe proiect</label>
-                      <select 
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            const member = team.find(t => t.id === e.target.value);
-                            if (member) {
-                              const newTeam = [...(selectedProject.team || []), member.id];
-                              logActivity(selectedProject, `L-a adăugat pe ${member.name} în echipă`, 'member', { team: newTeam });
+                      {userRole === 'admin' && (
+                        <select 
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              const member = team.find(t => t.id === e.target.value);
+                              if (member) {
+                                const newTeam = [...(selectedProject.team || []), member.id];
+                                logActivity(selectedProject, `L-a adăugat pe ${member.name} în echipă`, 'member', { team: newTeam });
+                              }
+                              e.target.value = '';
                             }
-                            e.target.value = '';
-                          }
-                        }}
-                        style={{ 
-                          padding: '4px 8px', borderRadius: 8, border: '1px solid ' + C.line, 
-                          background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 11, outline: 'none', cursor: 'pointer' 
-                        }}
-                      >
-                        <option value="">+ Adaugă membru</option>
-                        {team.filter(t => !(selectedProject.team || []).includes(t.id)).map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
+                          }}
+                          style={{ 
+                            padding: '4px 8px', borderRadius: 8, border: '1px solid ' + C.line, 
+                            background: C.panelAlt, color: C.ink, fontFamily: SANS, fontSize: 11, outline: 'none', cursor: 'pointer' 
+                          }}
+                        >
+                          <option value="">+ Adaugă membru</option>
+                          {team.filter(t => !(selectedProject.team || []).includes(t.id)).map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {team.filter(t => selectedProject.team && selectedProject.team.includes(t.id)).map(m => (
@@ -727,16 +778,18 @@ export default function App() {
                             <span style={{ fontSize: 12.5, color: C.ink, fontWeight: 500, fontFamily: SANS }}>{m.name}</span>
                             <span style={{ fontSize: 11, color: C.inkSoft, fontFamily: SANS }}>• {m.role}</span>
                           </div>
-                          <button 
-                            onClick={() => {
-                              const member = team.find(t => t.id === m.id);
-                              if (member) {
-                                const newTeam = (selectedProject.team || []).filter(tid => tid !== m.id);
-                                logActivity(selectedProject, `L-a eliminat pe ${member.name} din echipă`, 'member', { team: newTeam });
-                              }
-                            }}
-                            style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
-                          ><X size={14}/></button>
+                          {userRole === 'admin' && (
+                            <button 
+                              onClick={() => {
+                                const member = team.find(t => t.id === m.id);
+                                if (member) {
+                                  const newTeam = (selectedProject.team || []).filter(tid => tid !== m.id);
+                                  logActivity(selectedProject, `L-a eliminat pe ${member.name} din echipă`, 'member', { team: newTeam });
+                                }
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                            ><X size={14}/></button>
+                          )}
                         </div>
                       ))}
                       {(selectedProject.team || []).length === 0 && <span style={{ fontSize: 12, color: C.inkFaint, fontFamily: SANS }}>Niciun membru alocat.</span>}
@@ -753,14 +806,15 @@ export default function App() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <input 
                                 type="checkbox" 
-                                checked={ms.completed} 
+                                checked={ms.completed}
+                                disabled={userRole !== 'admin'}
                                 onChange={(e) => {
                                   const newM = [...(selectedProject.milestones || [])];
                                   newM[idx] = { ...newM[idx], completed: e.target.checked };
                                   const statusStr = e.target.checked ? 'finalizat' : 'redeschis';
                                   logActivity(selectedProject, `A ${statusStr} etapa "${newM[idx].name}"`, 'milestone', { milestones: newM });
                                 }} 
-                                style={{ cursor: 'pointer', accentColor: C.primary }}
+                                style={{ cursor: userRole === 'admin' ? 'pointer' : 'default', accentColor: C.primary }}
                               />
                               <span style={{ fontSize: 13, color: ms.completed ? C.inkFaint : C.ink, textDecoration: ms.completed ? 'line-through' : 'none', fontFamily: SANS, fontWeight: 500 }}>{ms.name}</span>
                             </div>
@@ -771,64 +825,68 @@ export default function App() {
                                 </div>
                               )}
                               <span style={{ fontSize: 11, color: ms.completed ? C.inkFaint : C.inkSoft, fontFamily: SANS }}>{fmtDate(ms.date)}</span>
-                              <button 
-                                onClick={() => {
-                                  const deletedName = (selectedProject.milestones || [])[idx]?.name;
-                                  const newM = (selectedProject.milestones || []).filter((_, i) => i !== idx);
-                                  logActivity(selectedProject, `A șters etapa "${deletedName}"`, 'milestone', { milestones: newM });
-                                }}
-                                style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
-                              ><X size={14}/></button>
+                              {userRole === 'admin' && (
+                                <button 
+                                  onClick={() => {
+                                    const deletedName = (selectedProject.milestones || [])[idx]?.name;
+                                    const newM = (selectedProject.milestones || []).filter((_, i) => i !== idx);
+                                    logActivity(selectedProject, `A șters etapa "${deletedName}"`, 'milestone', { milestones: newM });
+                                  }}
+                                  style={{ background: 'transparent', border: 'none', color: C.inkSoft, cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                                ><X size={14}/></button>
+                              )}
                             </div>
                           </div>
                         );
                       })}
                       {(selectedProject.milestones || []).length === 0 && <span style={{ fontSize: 12, color: C.inkFaint, fontFamily: SANS }}>Nicio etapă definită.</span>}
                     </div>
-                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
-                      <input 
-                        type="text" 
-                        placeholder="Nume etapă..." 
-                        value={newMilestoneName}
-                        onChange={e => setNewMilestoneName(e.target.value)}
-                        style={{ flex: 1, width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 13, outline: 'none', minWidth: 0, boxSizing: 'border-box' }} 
-                      />
-                      <input 
-                        type="date" 
-                        value={newMilestoneDate}
-                        onChange={e => setNewMilestoneDate(e.target.value)}
-                        style={{ width: isMobile ? '100%' : 110, padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 12, outline: 'none', boxSizing: 'border-box' }} 
-                      />
-                      <select
-                        value={newMilestoneAssigneeId}
-                        onChange={e => setNewMilestoneAssigneeId(e.target.value)}
-                        style={{ width: isMobile ? '100%' : 120, padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 12, outline: 'none', background: C.panel, cursor: 'pointer', boxSizing: 'border-box' }}
-                      >
-                        <option value="">Responsabil...</option>
-                        {team.filter(t => (selectedProject.team || []).includes(t.id)).map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
-                      <button 
-                        onClick={() => {
-                          if (newMilestoneName && newMilestoneDate) {
-                            const msAssignee = team.find(t => t.id === newMilestoneAssigneeId);
-                            const assigneeText = msAssignee ? ` (responsabil: ${msAssignee.name})` : '';
-                            const newM = [...(selectedProject.milestones || []), { 
-                              name: newMilestoneName, 
-                              date: newMilestoneDate, 
-                              completed: false,
-                              assigneeId: newMilestoneAssigneeId || null
-                            }];
-                            logActivity(selectedProject, `A adăugat etapa "${newMilestoneName}" scadentă pe ${fmtDate(newMilestoneDate)}${assigneeText}`, 'milestone', { milestones: newM });
-                            setNewMilestoneName('');
-                            setNewMilestoneDate('');
-                            setNewMilestoneAssigneeId('');
-                          }
-                        }}
-                        style={{ background: C.primary, color: C.paper, border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13, flexShrink: 0, width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }}
-                      >Adaugă</button>
-                    </div>
+                    {userRole === 'admin' && (
+                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
+                        <input 
+                          type="text" 
+                          placeholder="Nume etapă..." 
+                          value={newMilestoneName}
+                          onChange={e => setNewMilestoneName(e.target.value)}
+                          style={{ flex: 1, width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 13, outline: 'none', minWidth: 0, boxSizing: 'border-box' }} 
+                        />
+                        <input 
+                          type="date" 
+                          value={newMilestoneDate}
+                          onChange={e => setNewMilestoneDate(e.target.value)}
+                          style={{ width: isMobile ? '100%' : 110, padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 12, outline: 'none', boxSizing: 'border-box' }} 
+                        />
+                        <select
+                          value={newMilestoneAssigneeId}
+                          onChange={e => setNewMilestoneAssigneeId(e.target.value)}
+                          style={{ width: isMobile ? '100%' : 120, padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 12, outline: 'none', background: C.panel, cursor: 'pointer', boxSizing: 'border-box' }}
+                        >
+                          <option value="">Responsabil...</option>
+                          {team.filter(t => (selectedProject.team || []).includes(t.id)).map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                        <button 
+                          onClick={() => {
+                            if (newMilestoneName && newMilestoneDate) {
+                              const msAssignee = team.find(t => t.id === newMilestoneAssigneeId);
+                              const assigneeText = msAssignee ? ` (responsabil: ${msAssignee.name})` : '';
+                              const newM = [...(selectedProject.milestones || []), { 
+                                name: newMilestoneName, 
+                                date: newMilestoneDate, 
+                                completed: false,
+                                assigneeId: newMilestoneAssigneeId || null
+                              }];
+                              logActivity(selectedProject, `A adăugat etapa "${newMilestoneName}" scadentă pe ${fmtDate(newMilestoneDate)}${assigneeText}`, 'milestone', { milestones: newM });
+                              setNewMilestoneName('');
+                              setNewMilestoneDate('');
+                              setNewMilestoneAssigneeId('');
+                            }
+                          }}
+                          style={{ background: C.primary, color: C.paper, border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13, flexShrink: 0, width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }}
+                        >Adaugă</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -888,17 +946,21 @@ export default function App() {
             </div>
 
             <div style={{ borderTop: '1px solid ' + C.line, paddingTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-              <button onClick={() => { handleDeleteProject(selectedProject.id); setSelectedProject(null); }} style={{
-                display: 'flex', alignItems: 'center', gap: 6, background: C.coralSoft, color: C.coral, border: 'none',
-                padding: '8px 14px', borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: SANS
-              }}>
-                <Trash2 size={14} /> Sterge proiect
-              </button>
+              {userRole === 'admin' ? (
+                <button onClick={() => { handleDeleteProject(selectedProject.id); setSelectedProject(null); }} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, background: C.coralSoft, color: C.coral, border: 'none',
+                  padding: '8px 14px', borderRadius: 10, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: SANS
+                }}>
+                  <Trash2 size={14} /> Sterge proiect
+                </button>
+              ) : (
+                <div />
+              )}
               <button onClick={() => setSelectedProject(null)} style={{
                 background: C.ink, color: C.paper, border: 'none', padding: '8px 18px', borderRadius: 10,
                 fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: SANS
               }}>
-                Inchide
+                Închide
               </button>
             </div>
           </div>

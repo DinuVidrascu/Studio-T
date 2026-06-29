@@ -194,7 +194,7 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
               </button>
             </div>
           )}
-          <AddBtn onClick={() => setShowAdd(true)} label="Proiect nou" isMobile={isMobile} />
+          {userRole === 'admin' && <AddBtn onClick={() => setShowAdd(true)} label="Proiect nou" isMobile={isMobile} />}
         </div>
       </div>
 
