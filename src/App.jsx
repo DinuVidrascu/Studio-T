@@ -899,14 +899,44 @@ export default function App() {
 
               {activeModalTab === 'activity' && (
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16, paddingRight: 4 }}>
+
+                  {/* CTA banner for non-admin users */}
+                  {userRole !== 'admin' && (
+                    <div style={{
+                      background: `linear-gradient(135deg, ${C.primary}15, ${C.primary}28)`,
+                      border: `1.5px solid ${C.primary}50`,
+                      borderRadius: 12,
+                      padding: '12px 16px',
+                      marginBottom: 14,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      animation: 'ctaPulse 3s ease-in-out infinite'
+                    }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: C.primary, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', flexShrink: 0, fontSize: 18
+                      }}>💬</div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.primary, fontFamily: SANS, marginBottom: 2 }}>
+                          Poți lăsa un comentariu!
+                        </div>
+                        <div style={{ fontSize: 11.5, color: C.inkSoft, fontFamily: SANS, lineHeight: 1.4 }}>
+                          Scrie mai jos — comentariul tău va ajunge direct la admin.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16, paddingRight: 4 }}>
                     {(selectedProject.activities || []).map((act) => {
                       const isComment = act.type === 'comment';
                       return (
                         <div key={act.id} style={{ display: 'flex', flexDirection: 'column', background: isComment ? C.panel : C.panelAlt, border: '1px solid ' + (isComment ? C.line : C.lineSoft), borderRadius: 8, padding: '8px 12px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
                             <span style={{ fontSize: 11, fontWeight: 700, color: isComment ? C.primary : C.inkSoft, fontFamily: SANS }}>
-                              {isComment ? 'Comentariu' : act.userName}
+                              {isComment ? `💬 ${act.userName}` : act.userName}
                             </span>
                             <span style={{ fontSize: 9.5, color: C.inkFaint, fontFamily: SANS }}>
                               {new Date(act.time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })} • {fmtDate(act.time)}
@@ -922,30 +952,55 @@ export default function App() {
                       <span style={{ fontSize: 12, color: C.inkFaint, fontFamily: SANS, fontStyle: 'italic' }}>Nicio activitate înregistrată încă.</span>
                     )}
                   </div>
-                  
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <input 
-                      type="text" 
-                      placeholder="Scrie un comentariu..."
-                      value={newCommentText}
-                      onChange={e => setNewCommentText(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter' && newCommentText.trim()) {
-                          logActivity(selectedProject, newCommentText.trim(), 'comment');
-                          setNewCommentText('');
-                        }
-                      }}
-                      style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 12.5, outline: 'none' }}
-                    />
-                    <button 
-                      onClick={() => {
-                        if (newCommentText.trim()) {
-                          logActivity(selectedProject, newCommentText.trim(), 'comment');
-                          setNewCommentText('');
-                        }
-                      }}
-                      style={{ background: C.primary, color: C.paper, border: 'none', borderRadius: 8, padding: '8px 14px', cursor: 'pointer', fontWeight: 600, fontSize: 12, fontFamily: SANS }}
-                    >Trimite</button>
+
+                  {/* Comment input - highlighted for non-admins */}
+                  <div style={{
+                    background: userRole !== 'admin' ? `${C.primary}08` : 'transparent',
+                    border: userRole !== 'admin' ? `2px solid ${C.primary}40` : 'none',
+                    borderRadius: userRole !== 'admin' ? 12 : 0,
+                    padding: userRole !== 'admin' ? 12 : 0,
+                  }}>
+                    {userRole !== 'admin' && (
+                      <div style={{ fontSize: 11, color: C.primary, fontWeight: 600, fontFamily: SANS, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        ✏️ Scrie comentariul tău:
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input 
+                        type="text" 
+                        placeholder={userRole !== 'admin' ? 'Scrie un mesaj pentru admin...' : 'Scrie un comentariu...'}
+                        value={newCommentText}
+                        onChange={e => setNewCommentText(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newCommentText.trim()) {
+                            logActivity(selectedProject, newCommentText.trim(), 'comment');
+                            setNewCommentText('');
+                          }
+                        }}
+                        style={{
+                          flex: 1, padding: '10px 14px', borderRadius: 8,
+                          border: '1.5px solid ' + (userRole !== 'admin' ? C.primary : C.line),
+                          fontFamily: SANS, fontSize: 12.5, outline: 'none',
+                          background: C.panel,
+                          boxShadow: userRole !== 'admin' ? `0 0 0 3px ${C.primary}15` : 'none',
+                          transition: 'box-shadow 0.2s ease'
+                        }}
+                      />
+                      <button 
+                        onClick={() => {
+                          if (newCommentText.trim()) {
+                            logActivity(selectedProject, newCommentText.trim(), 'comment');
+                            setNewCommentText('');
+                          }
+                        }}
+                        style={{
+                          background: C.primary, color: C.paper, border: 'none', borderRadius: 8,
+                          padding: '10px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 13,
+                          fontFamily: SANS, display: 'flex', alignItems: 'center', gap: 6,
+                          boxShadow: userRole !== 'admin' ? `0 4px 12px ${C.primary}40` : 'none'
+                        }}
+                      >➤ Trimite</button>
+                    </div>
                   </div>
                 </div>
               )}
