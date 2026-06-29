@@ -17,6 +17,13 @@ const NAV = [
 export default function Sidebar({ view, setView, unreadCount = 0, theme, setTheme, user, userRole = 'user' }) {
   const hasCritical = unreadCount > 0;
 
+  const filteredNav = NAV.filter(item => {
+    if (userRole !== 'admin') {
+      return !['reports', 'settings'].includes(item.id);
+    }
+    return true;
+  });
+
   return (
     <div className="glass-panel" style={{
       width: 230, minWidth: 230, display: 'flex', flexDirection: 'column',
@@ -33,7 +40,7 @@ export default function Sidebar({ view, setView, unreadCount = 0, theme, setThem
 
       {/* Nav */}
       <nav style={{ flex: 1, paddingTop: 8 }}>
-        {NAV.map(({ id, Icon, label }) => {
+        {filteredNav.map(({ id, Icon, label }) => {
           const active = view === id;
           return (
             <button key={id} onClick={() => setView(id)} style={{

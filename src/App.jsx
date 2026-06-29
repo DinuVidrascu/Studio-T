@@ -101,6 +101,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (userRole !== 'admin' && ['settings', 'reports'].includes(view)) {
+      setView('dashboard');
+    }
+  }, [userRole, view]);
+
+  useEffect(() => {
     if (!isConfigured || !currentUser) return;
 
     const unsubProjects = onSnapshot(collection(db, "projects"), (snapshot) => {
@@ -227,10 +233,14 @@ export default function App() {
   }, [projects, team]);
 
   const handleAddEvent = async (newEv) => {
+    const evData = {
+      ...newEv,
+      creatorId: currentUser ? currentUser.uid : null
+    };
     if (isConfigured) {
-      await setDoc(doc(db, "events", newEv.id), newEv);
+      await setDoc(doc(db, "events", newEv.id), evData);
     } else {
-      setEvents(prev => [...prev, newEv]);
+      setEvents(prev => [...prev, evData]);
     }
   };
 
@@ -358,9 +368,9 @@ export default function App() {
   const visibleEvents = userRole === 'admin'
     ? events
     : events.filter(e => {
-        const isAssociatedWithVisibleProject = visibleProjects.some(p => p.id === e.projectId);
+        const isCreator = e.creatorId === currentUser?.uid;
         const userInEventTeam = e.team && e.team.includes(myMemberId);
-        return isAssociatedWithVisibleProject || userInEventTeam;
+        return isCreator || userInEventTeam;
       });
 
   const renderView = () => {
@@ -435,6 +445,7 @@ export default function App() {
           />
         );
       case 'reports':
+        if (userRole !== 'admin') return null;
         return (
           <ReportsView
             projects={visibleProjects}
@@ -444,6 +455,7 @@ export default function App() {
           />
         );
       case 'settings':
+        if (userRole !== 'admin') return null;
         return (
           <SettingsView
             theme={theme}
