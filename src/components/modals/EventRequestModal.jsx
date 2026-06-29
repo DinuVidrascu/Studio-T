@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { X, Check, XCircle, Calendar, Clock, User } from "lucide-react";
 import { C, SERIF, SANS } from "../../utils/constants";
 import Avatar from "../common/Avatar";
@@ -9,13 +9,6 @@ export default function EventRequestModal({ requests, team, onAccept, onRefuse, 
   const [newDate, setNewDate] = useState('');
   const [newStart, setNewStart] = useState('');
   const [newEnd, setNewEnd] = useState('');
-
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, []);
 
   if (!requests || requests.length === 0) return null;
 
