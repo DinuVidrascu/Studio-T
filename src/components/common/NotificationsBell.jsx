@@ -25,7 +25,7 @@ export default function NotificationsBell({ notifications, setNotifications, isM
   const unreadCount = notifications.filter(n => !n.read).length;
   const criticalCount = notifications.filter(n => !n.read && (n.severity === 'critical' || n.type === 'overdue')).length;
 
-  // Auto-open for 10s on first mount if there are unread notifications
+  // Auto-open for 10s if there are unread notifications
   useEffect(() => {
     if (hasAutoOpened.current || unreadCount === 0) return;
     hasAutoOpened.current = true;
@@ -50,8 +50,7 @@ export default function NotificationsBell({ notifications, setNotifications, isM
       clearTimeout(autoCloseRef.current);
       clearInterval(intervalRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [unreadCount]);
 
   const cancelAutoClose = () => {
     clearTimeout(autoCloseRef.current);
