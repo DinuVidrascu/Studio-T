@@ -520,7 +520,7 @@ export default function App() {
       </main>
 
       {isMobile && (
-        <MobileBottomNav view={view} setView={handleNavChange} />
+        <MobileBottomNav view={view} setView={handleNavChange} userRole={userRole} />
       )}
 
       {/* Project detail modal */}

@@ -11,14 +11,21 @@ const NAV = [
   { id: 'reports',   Icon: BarChart3,          label: 'Rapoarte'  },
 ];
 
-export default function MobileBottomNav({ view, setView }) {
+export default function MobileBottomNav({ view, setView, userRole = 'user' }) {
+  const filteredNav = NAV.filter(item => {
+    if (userRole !== 'admin') {
+      return !['reports', 'settings'].includes(item.id);
+    }
+    return true;
+  });
+
   return (
     <div className="glass-panel" style={{ 
       position: 'fixed', bottom: 0, left: 0, right: 0, 
       borderTop: '1px solid ' + C.line, display: 'flex', zIndex: 200, height: 62, 
       boxShadow: '0 -2px 16px rgba(0,0,0,0.05)' 
     }}>
-      {NAV.map(({ id, Icon, label }) => {
+      {filteredNav.map(({ id, Icon, label }) => {
         const active = view === id;
         return (
           <button key={id} onClick={() => setView(id)} style={{ 

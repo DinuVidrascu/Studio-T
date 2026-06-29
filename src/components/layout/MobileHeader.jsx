@@ -2,7 +2,7 @@ import React from "react";
 import { Settings } from "lucide-react";
 import { C, SERIF } from "../../utils/constants";
 
-export default function MobileHeader({ view, setView, user }) {
+export default function MobileHeader({ view, setView, user, userRole = 'user' }) {
   const titles = { dashboard: 'Acasa', gantt: 'Timeline', calendar: 'Calendar', projects: 'Proiecte', team: 'Echipa', settings: 'Setări', reports: 'Rapoarte' };
   return (
     <div className="glass-panel" style={{ 
@@ -16,9 +16,11 @@ export default function MobileHeader({ view, setView, user }) {
         </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={() => setView('settings')} style={{ background: 'transparent', border: 'none', color: view === 'settings' ? C.primary : C.ink, padding: 4, display: 'flex', cursor: 'pointer' }}>
-          <Settings size={22} strokeWidth={2} />
-        </button>
+        {userRole === 'admin' && (
+          <button onClick={() => setView('settings')} style={{ background: 'transparent', border: 'none', color: view === 'settings' ? C.primary : C.ink, padding: 4, display: 'flex', cursor: 'pointer' }}>
+            <Settings size={22} strokeWidth={2} />
+          </button>
+        )}
         {user?.photoURL ? (
           <img src={user.photoURL} alt="Avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
         ) : (
