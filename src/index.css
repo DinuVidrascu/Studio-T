@@ -1,0 +1,262 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+
+:root {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Theme variables - Light Mode */
+  --c-paper: #F3EFE6;
+  --c-panel: #FFFFFF;
+  --c-panel-alt: #FAF7F1;
+  --c-ink: #221F19;
+  --c-ink-soft: #6E695C;
+  --c-ink-faint: #A39C8C;
+  --c-line: #E8E1D3;
+  --c-line-soft: #F0EBDF;
+  
+  --c-primary: #1E6F64;
+  --c-primary-soft: #E0EEEB;
+  --c-coral: #E2664A;
+  --c-coral-soft: #FAE6DF;
+  --c-amber: #CC9526;
+  --c-amber-soft: #F6EBD3;
+  --c-sage: #5E8A55;
+  --c-sage-soft: #E6EEE2;
+  --c-rose: #BC5A77;
+
+  --c-shadow: 0 1px 2px rgba(34,31,25,0.04), 0 6px 20px rgba(34,31,25,0.05);
+  --c-shadow-soft: 0 1px 2px rgba(34,31,25,0.03), 0 3px 10px rgba(34,31,25,0.04);
+
+  color: var(--c-ink);
+  background-color: var(--c-paper);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  scrollbar-gutter: stable;
+}
+
+[data-theme="dark"] {
+  --c-paper: #121212;
+  --c-panel: #1A1A1A;
+  --c-panel-alt: #222222;
+  --c-ink: #F5F5F5;
+  --c-ink-soft: #B3B3B3;
+  --c-ink-faint: #7A7A7A;
+  --c-line: #333333;
+  --c-line-soft: #242424;
+  
+  --c-primary: #34A898;
+  --c-primary-soft: rgba(52, 168, 152, 0.15);
+  --c-coral: #FF8A73;
+  --c-coral-soft: rgba(255, 138, 115, 0.15);
+  --c-amber: #F0B743;
+  --c-amber-soft: rgba(240, 183, 67, 0.15);
+  --c-sage: #81BA77;
+  --c-sage-soft: rgba(129, 186, 119, 0.15);
+  --c-rose: #D96F8E;
+
+  --c-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --c-shadow-soft: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+body {
+  margin: 0;
+  background: var(--c-paper);
+  color: var(--c-ink);
+  overflow-x: hidden;
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+}
+
+/* Custom scrollbar to match the design aesthetics */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--c-line);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-ink-faint);
+}
+
+/* UI Utility Classes */
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--c-shadow);
+}
+
+.glass-panel {
+  background: var(--c-panel-glass, rgba(255, 255, 255, 0.8));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+[data-theme="dark"] .glass-panel {
+  --c-panel-glass: rgba(26, 26, 26, 0.7);
+}
+
+/* Base styles and transitions */
+button {
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+input, select, textarea {
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #1E6F64 !important;
+  box-shadow: 0 0 0 3px rgba(30, 111, 100, 0.15);
+}
+
+/* Fluid animations & transitions */
+.fade-in-view {
+  animation: fadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-backdrop {
+  animation: fadeInBackdrop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+  }
+  to {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+  }
+}
+
+.glass-panel {
+  background: var(--c-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--c-line);
+}
+
+.modal-content {
+  animation: scaleUpModal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  transform-origin: center;
+}
+
+@keyframes scaleUpModal {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-content-mobile {
+  animation: slideUpModalMobile 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpModalMobile {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.card-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--c-shadow) !important;
+}
+
+/* Notification badge pulse animation */
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(226, 102, 74, 0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(226, 102, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(226, 102, 74, 0); }
+}
+
+/* Task completed transition */
+.task-row {
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+/* Notification item hover */
+.notif-item:hover {
+  background: rgba(30, 111, 100, 0.04) !important;
+}
+
+/* Priority urgent flash */
+@keyframes urgentFlash {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.urgent-badge {
+  animation: urgentFlash 2s ease-in-out infinite;
+}
+
+/* Skeleton Loading Animation */
+@keyframes skeleton-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.skeleton {
+  animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background: var(--c-line-soft);
+}
+[data-theme="dark"] .skeleton {
+  background: var(--c-line);
+}

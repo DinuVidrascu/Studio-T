@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000" role="img" aria-label="TS Studio">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#30333B"/>
+      <stop offset="1" stop-color="#262931"/>
+    </linearGradient>
+    <linearGradient id="tanGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C7AB8F"/>
+      <stop offset="1" stop-color="#A88A6E"/>
+    </linearGradient>
+    <linearGradient id="creamGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F1ECE7"/>
+      <stop offset="1" stop-color="#CFC6BC"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect x="50" y="42" width="900" height="916" rx="150" ry="150" fill="url(#bgGrad)"/>
+
+  <!-- floor plan motif -->
+  <g fill="none" stroke="#B79C82" stroke-linecap="round" stroke-linejoin="round" opacity="0.55">
+    <!-- construction guide lines -->
+    <g stroke-width="1.4" opacity="0.5">
+      <line x1="258" y1="300" x2="258" y2="720"/>
+      <line x1="210" y1="372" x2="470" y2="372"/>
+      <path d="M258 372 m 0 0 a 210 210 0 0 1 188 330" stroke-dasharray="5 7"/>
+    </g>
+    <!-- room outline -->
+    <g stroke-width="2.2">
+      <path d="M286 420 H432 V470 H452 V520 H432 V690 H286 V612 H300 V470 H286 Z"/>
+      <!-- door swing -->
+      <path d="M286 420 q 70 4 70 70" stroke-width="1.4" stroke-dasharray="4 6"/>
+    </g>
+    <!-- sofa -->
+    <g stroke-width="2">
+      <rect x="296" y="500" width="44" height="96" rx="8"/>
+      <rect x="304" y="512" width="30" height="34" rx="5"/>
+      <rect x="304" y="552" width="30" height="34" rx="5"/>
+    </g>
+    <!-- round coffee table -->
+    <circle cx="372" cy="512" r="22" stroke-width="2"/>
+    <!-- plant -->
+    <g stroke-width="1.8">
+      <path d="M392 612 l0 -14"/>
+      <path d="M392 600 q -22 -6 -28 -26 q 22 4 28 26"/>
+      <path d="M392 600 q 22 -6 28 -26 q -22 4 -28 26"/>
+      <path d="M392 596 q -12 -16 -8 -36 q 14 12 8 36"/>
+      <path d="M392 596 q 12 -16 8 -36 q -14 12 -8 36"/>
+      <path d="M380 616 h24"/>
+    </g>
+  </g>
+
+  <!-- T (tan) -->
+  <path d="M315 0V53L528 80V1255H477Q224 1255 131 1235L104 1026H37V1341H1217V1026H1149L1122 1235Q1092 1242 991.0 1247.5Q890 1253 770 1253H721V80L934 53V0Z" transform="translate(215.179,712.000) scale(0.40641,-0.40641)" fill="url(#tanGrad)"/>
+
+  <!-- S (cream) overlapping -->
+  <path d="M139 361H204L239 180Q276 133 366.5 97.0Q457 61 545 61Q685 61 763.5 132.5Q842 204 842 330Q842 402 811.5 449.0Q781 496 731.5 528.5Q682 561 619.0 583.5Q556 606 489.5 629.0Q423 652 360.0 680.0Q297 708 247.5 751.0Q198 794 167.5 857.5Q137 921 137 1014Q137 1174 257.0 1265.0Q377 1356 590 1356Q752 1356 942 1313V1034H877L842 1198Q740 1272 590 1272Q456 1272 380.5 1217.5Q305 1163 305 1067Q305 1002 335.5 959.0Q366 916 415.5 885.5Q465 855 528.5 833.0Q592 811 658.5 787.5Q725 764 788.5 734.5Q852 705 901.5 659.5Q951 614 981.5 548.5Q1012 483 1012 387Q1012 193 893.0 86.5Q774 -20 550 -20Q442 -20 333.0 -1.0Q224 18 139 51Z" transform="translate(420.095,707.000) scale(0.35841,-0.35841)" fill="url(#creamGrad)"/>
+
+  <!-- STUDIO wordmark -->
+  <g fill="#C0A488">
+      <path d="M1084 1418V1324Q986 1373 867 1411Q789 1436 670 1438Q494 1441 384 1360Q284 1286 284 1106Q284 995 360 930Q441 861 604 819L723 788Q883 746 970 688Q1133 577 1133 409Q1133 166 990 72Q834 -29 670 -29Q499 -29 364 18Q279 52 186 112V210Q326 127 382 104Q507 53 614 53Q797 53 918 134Q1032 210 1032 401Q1032 513 962 577Q861 670 700 709L580 738Q436 773 335 836Q182 932 182 1098Q182 1305 307 1416Q423 1519 659 1520Q798 1520 872 1496Q1062 1434 1084 1418Z" transform="translate(333.875,800.000) scale(0.02679,-0.02679)"/>
+      <path d="M45 1493H1206V1411H676V0H575V1411H45Z" transform="translate(397.024,800.000) scale(0.02679,-0.02679)"/>
+      <path d="M229 1493H329V586Q329 302 429 177Q528 53 750 53Q971 53 1070 177Q1170 302 1170 586V1493H1270V561Q1270 269 1138 120Q1007 -29 750 -29Q492 -29 361 120Q229 269 229 561Z" transform="translate(457.200,800.000) scale(0.02679,-0.02679)"/>
+      <path d="M351 1408V81H647Q985 81 1142 241Q1300 401 1300 746Q1300 1089 1142 1249Q985 1408 647 1408ZM249 1493H616Q1024 1493 1215 1312Q1406 1132 1406 748Q1406 362 1214.0 181.0Q1022 0 616 0H249Z" transform="translate(518.554,800.000) scale(0.02679,-0.02679)"/>
+      <path d="M248 1493H352V0H248Z" transform="translate(583.579,800.000) scale(0.02679,-0.02679)"/>
+      <path d="M417 1255Q273 1068 273 745Q273 424 417 237Q562 50 807.0 50.0Q1052 50 1196 237Q1339 424 1339 745Q1339 1068 1196 1255Q1052 1442 807.0 1442.0Q562 1442 417 1255ZM807 1520Q1097 1520 1271 1310Q1445 1099 1445 745Q1445 392 1271 182Q1097 -29 807 -29Q516 -29 341 181Q167 391 167.0 745.0Q167 1099 341 1310Q516 1520 807 1520Z" transform="translate(622.535,800.000) scale(0.02679,-0.02679)"/>
+  </g>
+
+  <!-- underline -->
+  <rect x="455" y="862" width="90" height="5" rx="2.5" fill="#C0A488"/>
+</svg>

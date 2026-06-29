@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+             resourceExists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             getUserData().role == 'admin';
+    }
+
+    // Profiles of users
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if request.auth.uid == userId || isAdmin();
+    }
+
+    // Projects (only Admin can write, all authenticated users can read)
+    match /projects/{projectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Team members (only Admin can write, all authenticated users can read)
+    match /team/{memberId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Events / Calendar meetings (only Admin can write/delete, authenticated users can read and write)
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+  }
+  
+  // Helper check if document exists
+  function resourceExists(path) {
+    return exists(path);
+  }
+}
