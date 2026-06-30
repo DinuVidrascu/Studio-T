@@ -20,6 +20,8 @@ import Avatar from "./components/common/Avatar";
 import FField from "./components/common/FField";
 import NotificationsBell from "./components/common/NotificationsBell";
 import Toast from "./components/common/Toast";
+import Card from "./components/common/Card";
+import Skeleton from "./components/common/Skeleton";
 
 // Modals
 import AddProjectModal from "./components/modals/AddProjectModal";
@@ -701,16 +703,52 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', width: '100vw', background: '#0d1117', color: '#fff', fontFamily: SANS
-      }}>
-        <div style={{
-          width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)',
-          borderTopColor: C.primary, borderRadius: '50%',
-          animation: 'spin 1s linear infinite', marginBottom: 16
-        }} />
-        <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>Se încarcă...</span>
+      <div style={{ display: 'flex', minHeight: '100vh', background: C.bg }}>
+        {!isMobile && (
+          <div style={{ width: 240, borderRight: '1px solid ' + C.lineSoft, background: C.panel, padding: 24, display: 'flex', flexDirection: 'column' }}>
+            <Skeleton width={100} height={24} style={{ marginBottom: 40 }} />
+            {[1,2,3,4,5,6].map(i => <Skeleton key={i} width={i % 2 === 0 ? '70%' : '85%'} height={36} borderRadius={8} style={{ marginBottom: 12 }} />)}
+            <div style={{ marginTop: 'auto' }}>
+              <Skeleton width="100%" height={40} borderRadius={8} />
+            </div>
+          </div>
+        )}
+        <div style={{ flex: 1, padding: isMobile ? 16 : 40, overflow: 'hidden' }}>
+          <Skeleton width={200} height={32} style={{ marginBottom: 8 }} />
+          <Skeleton width={140} height={16} style={{ marginBottom: 40 }} />
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 16, marginBottom: 40 }}>
+            {[1,2,3,4].map(i => (
+              <Card key={i} style={{ padding: 20 }}>
+                <Skeleton width={40} height={40} borderRadius={10} style={{ marginBottom: 16 }} />
+                <Skeleton width="60%" height={24} style={{ marginBottom: 8 }} />
+                <Skeleton width="40%" height={14} />
+              </Card>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 24 }}>
+            <Card style={{ padding: 24 }}>
+              <Skeleton width={120} height={20} style={{ marginBottom: 24 }} />
+              {[1,2,3].map(i => (
+                <div key={i} style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+                  <Skeleton width={48} height={48} borderRadius={10} />
+                  <div style={{ flex: 1 }}>
+                    <Skeleton width="40%" height={16} style={{ marginBottom: 8 }} />
+                    <Skeleton width="100%" height={12} />
+                  </div>
+                </div>
+              ))}
+            </Card>
+            <Card style={{ padding: 24 }}>
+              <Skeleton width={150} height={20} style={{ marginBottom: 24 }} />
+              {[1,2,3,4].map(i => (
+                <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+                  <Skeleton width={32} height={32} borderRadius="50%" />
+                  <Skeleton width="70%" height={16} />
+                </div>
+              ))}
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
