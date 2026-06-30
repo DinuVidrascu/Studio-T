@@ -258,7 +258,7 @@ const exportPDF = (projects, team) => {
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────────
-export default function ReportsView({ projects, team, isMobile }) {
+function ReportsView({ projects, team, isMobile }) {
   const [hoveredBar, setHoveredBar] = useState(null);
   const [exporting, setExporting] = useState(null); // 'pdf' | 'excel' | null
 
@@ -529,3 +529,5 @@ export default function ReportsView({ projects, team, isMobile }) {
     </div>
   );
 }
+
+export default React.memo(ReportsView);

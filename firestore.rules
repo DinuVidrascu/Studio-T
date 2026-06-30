@@ -41,6 +41,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
+
+    // Notifications (all authenticated users can read and write)
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
   }
   
   // Helper check if document exists

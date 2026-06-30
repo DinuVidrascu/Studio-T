@@ -18,9 +18,14 @@ export const SANS  = 'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Rob
 export const TL_START   = new Date('2026-06-01');
 export const TL_END     = new Date('2026-09-01');
 export const TOTAL_DAYS = (TL_END - TL_START) / 86400000;
-export const TODAY      = new Date('2026-06-29');
-export const TODAY_STR  = '2026-06-29';
-export const TODAY_DAY  = (TODAY - TL_START) / 86400000;
+const _t = new Date();
+_t.setHours(0,0,0,0);
+export const TODAY = _t;
+const _yyyy = _t.getFullYear();
+const _mm = String(_t.getMonth() + 1).padStart(2, '0');
+const _dd = String(_t.getDate()).padStart(2, '0');
+export const TODAY_STR = `${_yyyy}-${_mm}-${_dd}`;
+export const TODAY_DAY = Math.floor((_t.getTime() - TL_START.getTime()) / 86400000);
 
 export const MONTHS_DEF = [
   { label:'Iunie',  start:new Date('2026-06-01'), days:30 },

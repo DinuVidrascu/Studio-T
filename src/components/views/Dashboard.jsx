@@ -69,7 +69,7 @@ function ProjRow({ p, onClick, menuOpenId, setMenuOpenId, onOpen, onDelete, user
   );
 }
 
-export default function Dashboard({ projects, team, events, onOpen, onAdd, onDeleteProject, onNavigate, isMobile, isLoading, userRole = 'admin' }) {
+function Dashboard({ projects, team, events, onOpen, onAdd, onDeleteProject, onNavigate, isMobile, isLoading, userRole = 'admin' }) {
   const [menuOpenId, setMenuOpenId] = useState(null);
 
   if (isLoading) {
@@ -132,7 +132,7 @@ export default function Dashboard({ projects, team, events, onOpen, onAdd, onDel
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:isMobile?18:26 }}>
         <div>
           {!isMobile && <h1 style={{ margin:0, fontSize:30, fontWeight:600, color:C.ink, fontFamily:SERIF, letterSpacing:'-0.5px' }}>Buna ziua</h1>}
-          <p style={{ margin:isMobile?'4px 0 0':'6px 0 0', color:C.inkSoft, fontSize:isMobile?13:14, fontFamily:SANS }}>Luni, 29 iunie 2026</p>
+          <p style={{ margin:isMobile?'4px 0 0':'6px 0 0', color:C.inkSoft, fontSize:isMobile?13:14, fontFamily:SANS }}>{new Date().toLocaleDateString('ro-RO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, str => str.toUpperCase())}</p>
         </div>
         {userRole === 'admin' && (
           <AddBtn onClick={onAdd} label={isMobile?'Proiect':'Proiect nou'} isMobile={isMobile} />
@@ -259,3 +259,5 @@ export default function Dashboard({ projects, team, events, onOpen, onAdd, onDel
     </div>
   );
 }
+
+export default React.memo(Dashboard);

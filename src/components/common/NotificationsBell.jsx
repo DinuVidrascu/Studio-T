@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, Clock, AlertTriangle, Edit3, CheckSquare, Target, XCircle } from "lucide-react";
+import { Bell, Clock, AlertTriangle, Edit3, CheckSquare, Target, XCircle, UserCheck } from "lucide-react";
 import { C, SERIF, SANS } from "../../utils/constants";
 import { fmtDate } from "../../utils/helpers";
 
@@ -11,11 +11,12 @@ const TYPE_CONFIG = {
   allocation: { Icon: AlertTriangle,  label: 'Supraalocare',     color: C.amber },
   update:     { Icon: Edit3,          label: 'Actualizare',      color: C.primary },
   calendar:   { Icon: Clock,          label: 'Calendar',         color: C.primary },
+  new_user:   { Icon: UserCheck,      label: 'Utilizator nou',   color: '#8b5cf6' },
 };
 
 const AUTO_CLOSE_MS = 10000;
 
-export default function NotificationsBell({ notifications, setNotifications, isMobile }) {
+export default function NotificationsBell({ notifications, onMarkAsRead, onMarkAllRead, onClearAll, onApproveUser, isMobile }) {
   const [open, setOpen] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const autoCloseRef = useRef(null);
@@ -64,9 +65,9 @@ export default function NotificationsBell({ notifications, setNotifications, isM
     setOpen(prev => !prev);
   };
 
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-  const markAsRead = (id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  const clearAll = () => { setNotifications([]); setOpen(false); };
+  const markAllRead = () => onMarkAllRead();
+  const markAsRead = (id) => onMarkAsRead(id);
+  const clearAll = () => { onClearAll(); setOpen(false); };
 
   const sortedNotifs = notifications.slice().sort((a, b) => {
     const aScore = (a.severity === 'critical' || a.type === 'overdue') ? 1 : 0;
@@ -171,6 +172,8 @@ export default function NotificationsBell({ notifications, setNotifications, isM
                   const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.update;
                   const { Icon } = cfg;
                   const isCritical = n.severity === 'critical' || n.type === 'overdue';
+                  const isNewUser = n.type === 'new_user';
+                  const rowColor = isNewUser ? '#8b5cf6' : isCritical ? C.coral : C.amber;
                   return (
                     <div
                       key={n.id}
@@ -178,31 +181,43 @@ export default function NotificationsBell({ notifications, setNotifications, isM
                       style={{
                         padding: '11px 16px', display: 'flex', gap: 11, alignItems: 'flex-start',
                         borderBottom: '1px solid ' + C.lineSoft, cursor: 'pointer',
-                        background: n.read ? 'transparent' : isCritical ? C.coral + '08' : C.amber + '08',
+                        background: n.read ? 'transparent' : isNewUser ? '#8b5cf608' : isCritical ? C.coral + '08' : C.amber + '08',
                         transition: 'background 0.2s',
-                        borderLeft: n.read ? 'none' : `3px solid ${isCritical ? C.coral : C.amber}`,
+                        borderLeft: n.read ? 'none' : `3px solid ${rowColor}`,
                       }}
                     >
                       <div style={{
                         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                        background: isCritical ? C.coralSoft : cfg.color + '18',
+                        background: isNewUser ? '#8b5cf618' : isCritical ? C.coralSoft : cfg.color + '18',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1
                       }}>
-                        <Icon size={13} color={isCritical ? C.coral : cfg.color} />
+                        <Icon size={13} color={rowColor} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: isCritical ? C.coral : cfg.color, fontFamily: SANS, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: rowColor, fontFamily: SANS, textTransform: 'uppercase', letterSpacing: '0.3px', marginBottom: 2 }}>
                           {cfg.label}
                         </div>
                         <div style={{ fontSize: 12.5, color: C.ink, fontWeight: n.read ? 400 : 600, fontFamily: SANS, lineHeight: 1.4 }}>
                           {n.message}
                         </div>
+                        {isNewUser && onApproveUser && n.userId && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onApproveUser(n.userId, n.id); }}
+                            style={{
+                              marginTop: 8, background: '#8b5cf6', color: '#fff', border: 'none',
+                              borderRadius: 8, padding: '5px 12px', fontSize: 11.5, fontWeight: 700,
+                              cursor: 'pointer', fontFamily: SANS, display: 'flex', alignItems: 'center', gap: 5
+                            }}
+                          >
+                            <UserCheck size={12} /> Aprobă accesul
+                          </button>
+                        )}
                         <div style={{ fontSize: 10, color: C.inkFaint, marginTop: 4, fontFamily: SANS }}>
                           {new Date(n.time).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })} • {fmtDate(new Date(n.time).toISOString().split('T')[0])}
                         </div>
                       </div>
                       {!n.read && (
-                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: isCritical ? C.coral : C.amber, flexShrink: 0, marginTop: 8 }} />
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: rowColor, flexShrink: 0, marginTop: 8 }} />
                       )}
                     </div>
                   );

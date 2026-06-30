@@ -12,7 +12,7 @@ import EmptyState from "../common/EmptyState";
 import Skeleton from "../common/Skeleton";
 import { Inbox } from "lucide-react";
 
-export default function ProjectsView({ defaultFilter = 'all', projects, team, onAddProject, onUpdateProject, onDeleteProject, onOpen, isMobile, isLoading, userRole = 'admin' }) {
+function ProjectsView({ defaultFilter = 'all', projects, team, onAddProject, onUpdateProject, onDeleteProject, onOpen, isMobile, isLoading, userRole = 'admin' }) {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' sau 'kanban'
   const [filterStatus, setFilterStatus] = useState(defaultFilter);
   const [showAdd, setShowAdd] = useState(false);
@@ -321,3 +321,5 @@ export default function ProjectsView({ defaultFilter = 'all', projects, team, on
     </div>
   );
 }
+
+export default React.memo(ProjectsView);

@@ -4,7 +4,7 @@ import { daysLeft, fmtDate } from "../../utils/helpers";
 import Card from "../common/Card";
 import AddBtn from "../common/AddBtn";
 
-export default function GanttView({ projects, team, onOpen, onUpdateProject, onAdd, isMobile, userRole = 'admin' }) {
+function GanttView({ projects, team, onOpen, onUpdateProject, onAdd, isMobile, userRole = 'admin' }) {
   const [hoveredId, setHoveredId] = useState(null);
   const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, proj: null });
   
@@ -335,3 +335,5 @@ export default function GanttView({ projects, team, onOpen, onUpdateProject, onA
     </div>
   );
 }
+
+export default React.memo(GanttView);

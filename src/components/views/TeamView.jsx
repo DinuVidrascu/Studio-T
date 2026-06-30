@@ -9,7 +9,7 @@ import EmptyState from "../common/EmptyState";
 import Skeleton from "../common/Skeleton";
 import { Ghost } from "lucide-react";
 
-export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeamMember, onEditTeamMember, isMobile, isLoading, userRole = 'admin', registeredUsers = [] }) {
+function TeamView({ team, projects, onAddTeamMember, onDeleteTeamMember, onEditTeamMember, isMobile, isLoading, userRole = 'admin', registeredUsers = [] }) {
   const [showAdd, setShowAdd] = useState(false);
   const [linkingId, setLinkingId] = useState(null);
 
@@ -200,3 +200,5 @@ export default function TeamView({ team, projects, onAddTeamMember, onDeleteTeam
     </div>
   );
 }
+
+export default React.memo(TeamView);

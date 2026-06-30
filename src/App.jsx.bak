@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, lazy, Suspense, useMemo, useCallback } from "react";
 import { X, Trash2 } from "lucide-react";
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, getDoc, getDocs } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -27,13 +27,13 @@ import EventRequestModal from "./components/modals/EventRequestModal";
 import AddTeamModal from "./components/modals/AddTeamModal";
 
 // Views
-import Dashboard from "./components/views/Dashboard";
-import GanttView from "./components/views/GanttView";
-import CalendarView from "./components/views/CalendarView";
-import ProjectsView from "./components/views/ProjectsView";
-import TeamView from "./components/views/TeamView";
-import ReportsView from "./components/views/ReportsView";
-import SettingsView from "./components/views/SettingsView";
+const Dashboard = lazy(() => import("./components/views/Dashboard"));
+const GanttView = lazy(() => import("./components/views/GanttView"));
+const CalendarView = lazy(() => import("./components/views/CalendarView"));
+const ProjectsView = lazy(() => import("./components/views/ProjectsView"));
+const TeamView = lazy(() => import("./components/views/TeamView"));
+const ReportsView = lazy(() => import("./components/views/ReportsView"));
+const SettingsView = lazy(() => import("./components/views/SettingsView"));
 
 export default function App() {
   const [view, setView] = useState('dashboard');
@@ -53,7 +53,6 @@ export default function App() {
   const notifications = useMemo(() => {
     return [...localNotifications, ...dbNotifications].sort((a, b) => b.time - a.time);
   }, [localNotifications, dbNotifications]);
-
   const [activeModalTab, setActiveModalTab] = useState('details');
 
   const openOnActivity = (proj) => {
@@ -107,17 +106,6 @@ export default function App() {
             });
             setUserRole('user');
             setUserApproved(false);
-            // Notify admins about new user registration
-            if (isConfigured) {
-              await setDoc(doc(db, "notifications", `new-user-${user.uid}`), {
-                id: `new-user-${user.uid}`,
-                type: 'new_user',
-                userId: user.uid,
-                message: `👤 Utilizator nou: ${user.displayName || user.email} a solicitat acces în Studio.`,
-                time: Date.now(),
-                read: false
-              });
-            }
           } else {
             const data = userSnap.data();
             setUserRole(data.role || 'user');
@@ -194,43 +182,13 @@ export default function App() {
       }
     });
 
-    const unsubUsers = onSnapshot(collection(db, "users"), async (snapshot) => {
+    const unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
       if (snapshot.empty) {
         setRegisteredUsers([]);
       } else {
         const usrs = [];
         snapshot.forEach((doc) => usrs.push(doc.data()));
         setRegisteredUsers(usrs);
-
-        // Auto-create notifications for unapproved users missing one
-        const unapproved = usrs.filter(u => u.approved !== true && u.role !== 'admin');
-        for (const u of unapproved) {
-          const notifId = `new-user-${u.uid}`;
-          try {
-            const notifRef = doc(db, "notifications", notifId);
-            const notifSnap = await getDoc(notifRef);
-            if (!notifSnap.exists()) {
-              await setDoc(notifRef, {
-                id: notifId,
-                type: 'new_user',
-                userId: u.uid,
-                message: `👤 Utilizator nou: ${u.displayName || u.email} a solicitat acces în Studio.`,
-                time: u.createdAt || Date.now(),
-                read: false
-              });
-            }
-          } catch (e) { /* ignore permission errors */ }
-        }
-      }
-    });
-
-    const unsubNotifications = onSnapshot(collection(db, "notifications"), (snapshot) => {
-      if (snapshot.empty) {
-        setDbNotifications([]);
-      } else {
-        const notifs = [];
-        snapshot.forEach((d) => notifs.push(d.data()));
-        setDbNotifications(notifs);
       }
     });
 
@@ -239,7 +197,201 @@ export default function App() {
       unsubTeam();
       unsubEvents();
       unsubUsers();
-      unsubNotifications();
+    };
+  }, [currentUser]);
+
+  useEffect(() => {
+    // Generate initial automated notifications
+    const newNotifs = [];
+    
+    const now = new Date();
+    // Check deadlines (< 3 days)
+    projects.forEach(p => {
+      if (p.status !== 'completed') {
+        const d = daysLeft(p.endDate);
+        if (d !== null && d >= 0 && d <= 3) {
+          newNotifs.push({
+            id: `deadline-${p.id}`,
+            type: 'deadline',
+            severity: d === 0 ? 'critical' : 'warning',
+            message: d === 0
+              ? `⛔ Proiectul "${p.name}" are deadline AZI!`
+              : `⏰ Proiectul "${p.name}" are deadline în ${d} zile.`,
+            time: Date.now(),
+            read: false
+          });
+        }
+        // Deadline depășit
+        if (d !== null && d < 0 && p.status !== 'completed') {
+          newNotifs.push({
+            id: `overdue-${p.id}`,
+            type: 'overdue',
+            severity: 'critical',
+            message: `🔴 Proiectul "${p.name}" are deadline depășit cu ${Math.abs(d)} zile!`,
+            time: Date.now(),
+            read: false
+          });
+        }
+      }
+    });
+
+    // Check overdue milestones
+    projects.forEach(p => {
+      (p.milestones || []).forEach(ms => {
+        if (!ms.completed && ms.date && new Date(ms.date) < now) {
+          newNotifs.push({
+            id: `ms-overdue-${p.id}-${ms.name}`,
+            type: 'milestone',
+            severity: 'warning',
+            message: `📌 Etapa "${ms.name}" din "${p.name}" este depășită.`,
+            time: Date.now(),
+            read: false
+          });
+        }
+      });
+    });
+
+    // Check over-allocation (>= 3 active projects per member)
+    team.forEach(m => {
+      const activeProjCount = projects.filter(p => p.status !== 'completed' && p.team && p.team.includes(m.id)).length;
+      if (activeProjCount >= 3) {
+        newNotifs.push({
+          id: `alloc-${m.id}`,
+          type: 'allocation',
+          severity: 'warning',
+          message: `⚠️ ${m.name} este supra-solicitat (${activeProjCount} proiecte active).`,
+          time: Date.now(),
+  const [registeredUsers, setRegisteredUsers] = useState([]);
+
+  const w = useWindowWidth();
+  const isMobile = w < 768;
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    if (!isConfigured) {
+      setAuthLoading(false);
+      setUserApproved(true); // bypass approval in local dev
+      return;
+    }
+    let userDocUnsubscribe = null;
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      // Cleanup previous user doc listener
+      if (userDocUnsubscribe) { userDocUnsubscribe(); userDocUnsubscribe = null; }
+
+      setCurrentUser(user);
+      if (user) {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
+
+          if (!userSnap.exists()) {
+            // Brand new user — create doc with approved: false
+            await setDoc(userRef, {
+              uid: user.uid,
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL,
+              role: 'user',
+              approved: false,
+              createdAt: Date.now()
+            });
+            setUserRole('user');
+            setUserApproved(false);
+          } else {
+            const data = userSnap.data();
+            setUserRole(data.role || 'user');
+            setUserApproved(data.approved === true);
+            // Update display info
+            await setDoc(userRef, {
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL
+            }, { merge: true });
+          }
+
+          // Real-time listener — detects when admin approves the user
+          userDocUnsubscribe = onSnapshot(userRef, (snap) => {
+            if (snap.exists()) {
+              const d = snap.data();
+              setUserRole(d.role || 'user');
+              setUserApproved(d.approved === true);
+            }
+          });
+        } catch (err) {
+          console.error("Error setting user profile:", err);
+          setUserRole('user');
+          setUserApproved(false);
+        }
+      } else {
+        setUserRole('user');
+        setUserApproved(false);
+      }
+      setAuthLoading(false);
+    });
+    return () => {
+      unsubscribeAuth();
+      if (userDocUnsubscribe) userDocUnsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (userRole !== 'admin' && ['settings', 'reports'].includes(view)) {
+      setView('dashboard');
+    }
+  }, [userRole, view]);
+
+  useEffect(() => {
+    if (!isConfigured || !currentUser) return;
+
+    const unsubProjects = onSnapshot(collection(db, "projects"), (snapshot) => {
+      if (snapshot.empty) {
+        setProjects([]);
+      } else {
+        const projs = [];
+        snapshot.forEach((doc) => projs.push(doc.data()));
+        setProjects(projs);
+      }
+    });
+
+    const unsubTeam = onSnapshot(collection(db, "team"), (snapshot) => {
+      if (snapshot.empty) {
+        setTeam([]);
+      } else {
+        const tm = [];
+        snapshot.forEach((doc) => tm.push(doc.data()));
+        setTeam(tm);
+      }
+    });
+
+    const unsubEvents = onSnapshot(collection(db, "events"), (snapshot) => {
+      if (snapshot.empty) {
+        setEvents([]);
+      } else {
+        const evs = [];
+        snapshot.forEach((doc) => evs.push(doc.data()));
+        setEvents(evs);
+      }
+    });
+
+    const unsubUsers = onSnapshot(collection(db, "users"), (snapshot) => {
+      if (snapshot.empty) {
+        setRegisteredUsers([]);
+      } else {
+        const usrs = [];
+        snapshot.forEach((doc) => usrs.push(doc.data()));
+        setRegisteredUsers(usrs);
+      }
+    });
+
+    return () => {
+      unsubProjects();
+      unsubTeam();
+      unsubEvents();
+      unsubUsers();
     };
   }, [currentUser]);
 
@@ -310,7 +462,7 @@ export default function App() {
     });
 
     if (newNotifs.length > 0) {
-      setNotifications(prev => {
+      setLocalNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
         const toAdd = newNotifs.filter(n => !existingIds.has(n.id));
         return [...prev, ...toAdd];
@@ -318,10 +470,53 @@ export default function App() {
     }
   }, [projects, team]);
 
-  const handleAddEvent = async (newEv) => {
-    // If it has tagged members and the user is involved, mark as pending to get approval
+
+  const addNotification = useCallback(async (notif) => {
+    if (isConfigured) {
+      await setDoc(doc(db, "notifications", notif.id), notif);
+    } else {
+      setDbNotifications(prev => [notif, ...prev]);
+    }
+  }, [isConfigured]);
+
+  const handleMarkAsRead = useCallback(async (id) => {
+    if (localNotifications.some(n => n.id === id)) {
+      setLocalNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    }
+    if (dbNotifications.some(n => n.id === id)) {
+      if (isConfigured) {
+        await updateDoc(doc(db, "notifications", id), { read: true });
+      } else {
+        setDbNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+      }
+    }
+  }, [localNotifications, dbNotifications, isConfigured]);
+
+  const handleMarkAllRead = useCallback(async () => {
+    setLocalNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    if (isConfigured) {
+      dbNotifications.filter(n => !n.read).forEach(async (n) => {
+        await updateDoc(doc(db, "notifications", n.id), { read: true });
+      });
+    } else {
+      setDbNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    }
+  }, [dbNotifications, isConfigured]);
+
+  const handleClearAll = useCallback(async () => {
+    setLocalNotifications([]);
+    if (isConfigured) {
+      dbNotifications.forEach(async (n) => {
+        await deleteDoc(doc(db, "notifications", n.id));
+      });
+    } else {
+      setDbNotifications([]);
+    }
+  }, [dbNotifications, isConfigured]);
+
+  const handleAddEvent = useCallback(async (newEv) => {
     const hasTagged = newEv.team && newEv.team.length > 0;
-    const isPending = hasTagged; // All events involving multiple people start as pending until confirmed
+    const isPending = hasTagged; 
     const evData = {
       ...newEv,
       creatorId: currentUser ? currentUser.uid : null,
@@ -334,41 +529,36 @@ export default function App() {
     } else {
       setEvents(prev => [...prev, evData]);
     }
-    // Notify admin when a user creates an event with tagged members
     if (isPending) {
       const creatorName = currentUser?.displayName || currentUser?.email || 'Un utilizator';
       addNotification({
         id: `ev-req-${newEv.id}-${Date.now()}`,
-        eventId: newEv.id,
-        team: newEv.team,
         type: 'calendar',
         message: `📅 ${creatorName} a solicitat o întâlnire: "${newEv.title}" pe ${newEv.date} la ${newEv.startTime}.`,
         time: Date.now(),
         read: false
       });
     }
-  };
+  }, [currentUser, isConfigured, addNotification]);
 
-  const handleAcceptEvent = async (ev) => {
+  const handleAcceptEvent = useCallback(async (ev) => {
     const updated = { ...ev, status: 'confirmed' };
     if (isConfigured) {
       await updateDoc(doc(db, "events", ev.id), { status: 'confirmed' });
     } else {
       setEvents(prev => prev.map(e => e.id === ev.id ? updated : e));
     }
-    // Notify the creator
     addNotification({
       id: `ev-acc-${ev.id}-${Date.now()}`,
-      eventId: ev.id,
-      team: ev.team,
+      projectId: null,
       type: 'calendar',
       message: `✅ Înâlnirea "${ev.title}" pe ${ev.date} la ${ev.startTime} a fost acceptată!`,
       time: Date.now(),
       read: false
     });
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleRefuseEvent = async (ev, mode) => {
+  const handleRefuseEvent = useCallback(async (ev, mode) => {
     if (mode === 'refuse') {
       if (isConfigured) {
         await updateDoc(doc(db, "events", ev.id), { status: 'refused' });
@@ -377,18 +567,16 @@ export default function App() {
       }
       addNotification({
         id: `ev-ref-${ev.id}-${Date.now()}`,
-        eventId: ev.id,
-        team: ev.team,
+        projectId: null,
         type: 'calendar',
         message: `❌ Înâlnirea "${ev.title}" pe ${ev.date} a fost refuzată de Lead.`,
         time: Date.now(),
         read: false
       });
     }
-    // 'dismiss' just closes the modal without changing status
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleProposeNewTime = async (ev, newDate, newStart, newEnd) => {
+  const handleProposeNewTime = useCallback(async (ev, newDate, newStart, newEnd) => {
     const updated = { ...ev, date: newDate, startTime: newStart, endTime: newEnd, status: 'counter-proposed' };
     if (isConfigured) {
       await updateDoc(doc(db, "events", ev.id), { date: newDate, startTime: newStart, endTime: newEnd, status: 'counter-proposed' });
@@ -397,33 +585,32 @@ export default function App() {
     }
     addNotification({
       id: `ev-prop-${ev.id}-${Date.now()}`,
-      eventId: ev.id,
-      team: ev.team,
+      projectId: null,
       type: 'calendar',
       message: `📆 Lead propune altă dată pentru "${ev.title}": ${newDate} la ${newStart}–${newEnd}.`,
       time: Date.now(),
       read: false
     });
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleDeleteEvent = async (evId) => {
+  const handleDeleteEvent = useCallback(async (evId) => {
     if (isConfigured) {
       await deleteDoc(doc(db, "events", evId));
     } else {
       setEvents(prev => prev.filter(e => e.id !== evId));
     }
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleAddProject = async (newProj) => {
+  const handleAddProject = useCallback(async (newProj) => {
     if (isConfigured) {
       await setDoc(doc(db, "projects", newProj.id), newProj);
     } else {
       setProjects(prev => [...prev, newProj]);
     }
     setToast({ message: `Proiectul "${newProj.name}" a fost adaugat cu succes!`, type: 'success' });
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleDeleteProject = async (projId) => {
+  const handleDeleteProject = useCallback(async (projId) => {
     if (isConfigured) {
       await deleteDoc(doc(db, "projects", projId));
       const evsToUpdate = events.filter(e => e.projectId === projId);
@@ -435,9 +622,9 @@ export default function App() {
       setEvents(prev => prev.map(e => e.projectId === projId ? { ...e, projectId: '' } : e));
     }
     setToast({ message: 'Proiectul a fost sters din Studio.', type: 'info' });
-  };
+  }, [isConfigured, events]);
 
-  const handleUpdateProject = async (updatedProj) => {
+  const handleUpdateProject = useCallback(async (updatedProj) => {
     if (isConfigured) {
       await setDoc(doc(db, "projects", updatedProj.id), updatedProj);
     } else {
@@ -451,9 +638,9 @@ export default function App() {
       time: Date.now(),
       read: false
     });
-  };
+  }, [isConfigured, addNotification]);
 
-  const logActivity = (proj, text, type, extraUpdates = {}) => {
+  const logActivity = useCallback((proj, text, type, extraUpdates = {}) => {
     const act = {
       id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       text,
@@ -478,37 +665,38 @@ export default function App() {
     };
     setSelectedProject(updated);
     handleUpdateProject(updated);
-  };
+  }, [currentUser, userRole, handleUpdateProject, addNotification]);
 
-  const handleAddTeamMember = async (newMem) => {
+  const handleAddTeamMember = useCallback(async (newMem) => {
     if (isConfigured) {
       await setDoc(doc(db, "team", newMem.id), newMem);
     } else {
       setTeam(prev => [...prev, newMem]);
     }
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleNavigate = (newView, filter = 'all') => {
-    if (newView === 'projects') setProjectsFilter(filter);
-    handleNavChange(newView);
-  };
-
-  const handleNavChange = (newView) => {
+  const handleNavChange = useCallback((newView) => {
     if (newView === view) return;
     setIsLoading(true);
     setView(newView);
     setTimeout(() => setIsLoading(false), 400);
-  };
+  }, [view]);
 
-  const handleEditTeamMember = async (updatedMem) => {
+  const handleNavigate = useCallback((newView, filter = 'all') => {
+    setView(newView);
+    if (newView === 'projects')    setProjectsFilter(filter);
+    handleNavChange(newView);
+  }, [handleNavChange]);
+
+  const handleEditTeamMember = useCallback(async (updatedMem) => {
     if (isConfigured) {
       await setDoc(doc(db, "team", updatedMem.id), updatedMem);
     } else {
       setTeam(prev => prev.map(t => t.id === updatedMem.id ? updatedMem : t));
     }
-  };
+  }, [isConfigured, addNotification]);
 
-  const handleDeleteTeamMember = async (memId) => {
+  const handleDeleteTeamMember = useCallback(async (memId) => {
     if (isConfigured) {
       await deleteDoc(doc(db, "team", memId));
       const projsToUpdate = projects.filter(p => p.team && p.team.includes(memId));
@@ -528,82 +716,51 @@ export default function App() {
       setProjects(prev => prev.map(p => ({ ...p, team: p.team.filter(tid => tid !== memId) })));
       setEvents(prev => prev.map(e => ({ ...e, team: e.team.filter(tid => tid !== memId) })));
     }
-  };
+  }, [isConfigured, projects, events]);
 
   const myMember = team.find(t => t.userId === currentUser?.uid || t.email === currentUser?.email);
   const myMemberId = myMember ? myMember.id : null;
 
-  const handleMarkAsRead = async (id) => {
-    const isLocal = localNotifications.some(n => n.id === id);
-    if (isLocal) {
-      setLocalNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-    } else {
-      try { await updateDoc(doc(db, "notifications", id), { read: true }); } catch (e) {}
-    }
-  };
+  const visibleProjects = useMemo(() => {
+    return userRole === 'admin'
+      ? projects
+      : projects.filter(p => p.team && p.team.includes(myMemberId));
+  }, [userRole, projects, myMemberId]);
 
-  const handleMarkAllRead = async () => {
-    setLocalNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    for (const n of dbNotifications.filter(n => !n.read)) {
-      try { await updateDoc(doc(db, "notifications", n.id), { read: true }); } catch (e) {}
-    }
-  };
-
-  const handleClearAll = async () => {
-    setLocalNotifications([]);
-    for (const n of dbNotifications) {
-      try { await deleteDoc(doc(db, "notifications", n.id)); } catch (e) {}
-    }
-  };
-
-  const handleApproveUser = async (userId, notifId) => {
-    try {
-      await updateDoc(doc(db, "users", userId), { approved: true });
-      if (notifId) await deleteDoc(doc(db, "notifications", notifId));
-      setToast({ message: 'Utilizatorul a primit acces în Studio!', type: 'success' });
-    } catch (e) {
-      setToast({ message: 'Eroare la aprobare.', type: 'error' });
-    }
-  };
-
-  const visibleProjects = userRole === 'admin'
-    ? projects
-    : projects.filter(p => p.team && p.team.includes(myMemberId));
-
-  const visibleEvents = userRole === 'admin'
-    ? events.filter(e => e.status !== 'refused')
-    : events.filter(e => {
-        const isCreator = e.creatorId === currentUser?.uid;
-        const userInEventTeam = e.team && e.team.includes(myMemberId);
-        const isVisible = e.status !== 'refused';
-        return isVisible && (isCreator || (userInEventTeam && (e.status === 'confirmed' || e.status === 'pending')));
-      });
+  const visibleEvents = useMemo(() => {
+    return userRole === 'admin'
+      ? events.filter(e => e.status !== 'pending' && e.status !== 'refused')
+      : events.filter(e => {
+          const isCreator = e.creatorId === currentUser?.uid;
+          const userInEventTeam = e.team && e.team.includes(myMemberId);
+          const isVisible = e.status !== 'refused';
+          return isVisible && (isCreator || (userInEventTeam && e.status === 'confirmed'));
+        });
+  }, [userRole, events, currentUser?.uid, myMemberId]);
 
   // Pending event requests for admin to approve
-  const pendingRequests = events.filter(e => {
-    if (e.status !== 'pending') return false;
-    // Don't show modal for events you created yourself
-    if (e.creatorUserId === currentUser?.uid) return false;
-    
-    // Admins see all pending requests from others
-    if (userRole === 'admin') return true;
-    
-    // Normal users see requests where they are tagged
-    return e.team && e.team.includes(myMemberId);
-  });
+  const pendingRequests = useMemo(() => {
+    return events.filter(e => {
+      if (e.status !== 'pending') return false;
+      // Don't show modal for events you created yourself
+      if (e.creatorUserId === currentUser?.uid) return false;
+      
+      // Admins see all pending requests from others
+      if (userRole === 'admin') return true;
+      
+      // Normal users see requests where they are tagged
+      return e.team && e.team.includes(myMemberId);
+    });
+  }, [events, currentUser?.uid, userRole, myMemberId]);
 
   const visibleNotifications = useMemo(() => {
-    if (userRole === 'admin') return notifications;
-    return notifications.filter(n => {
-      if (n.type === 'new_user') return false; // only admins see new_user notifs
-      if (n.team) return n.team.includes(myMemberId);
-      if (n.projectId) return projects.some(p => p.id === n.projectId && p.team && p.team.includes(myMemberId));
-      if (n.eventId) return events.some(e => e.id === n.eventId && e.team && e.team.includes(myMemberId));
-      return false;
-    });
-  }, [userRole, notifications, projects, events, myMemberId]);
+    return userRole === 'admin'
+      ? notifications
+      : notifications.filter(n => !n.projectId || projects.some(p => p.id === n.projectId && p.team && p.team.includes(myMemberId)));
+  }, [userRole, notifications, projects, myMemberId]);
 
   const renderView = () => {
+    console.log("DEBUG FRONTEND: userRole =", userRole, "currentUser =", currentUser?.email);
     switch (view) {
       case 'dashboard':
         return (
@@ -810,7 +967,6 @@ export default function App() {
         onMarkAsRead={handleMarkAsRead}
         onMarkAllRead={handleMarkAllRead}
         onClearAll={handleClearAll}
-        onApproveUser={userRole === 'admin' ? handleApproveUser : undefined}
         isMobile={isMobile} 
       />
 
@@ -824,7 +980,13 @@ export default function App() {
         zIndex: 1,
         position: 'relative'
       }}>
-        {renderView()}
+        <Suspense fallback={
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 40, fontFamily: SANS, color: C.inkFaint }}>
+            Se încarcă vizualizarea...
+          </div>
+        }>
+          {renderView()}
+        </Suspense>
       </main>
       {isMobile && (
         <MobileBottomNav view={view} setView={handleNavChange} userRole={userRole} />
@@ -1156,7 +1318,7 @@ export default function App() {
                       <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
                         <input 
                           type="text" 
-                          placeholder="Nume etapă..." 
+                          placeholder="Sarcină..." 
                           value={newMilestoneName}
                           onChange={e => setNewMilestoneName(e.target.value)}
                           style={{ flex: 1, width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid ' + C.line, fontFamily: SANS, fontSize: 13, outline: 'none', minWidth: 0, boxSizing: 'border-box' }} 

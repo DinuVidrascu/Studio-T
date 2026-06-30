@@ -3,7 +3,7 @@ import { X, Check, XCircle, Calendar, Clock, User } from "lucide-react";
 import { C, SERIF, SANS } from "../../utils/constants";
 import Avatar from "../common/Avatar";
 
-export default function EventRequestModal({ requests, team, onAccept, onRefuse, onProposeNewTime, isMobile, userRole }) {
+export default function EventRequestModal({ requests, team, onAccept, onRefuse, onProposeNewTime, isMobile, userRole, registeredUsers = [] }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [proposingTime, setProposingTime] = useState(false);
   const [newDate, setNewDate] = useState('');
@@ -16,6 +16,10 @@ export default function EventRequestModal({ requests, team, onAccept, onRefuse, 
   const creator = team.find(t => t.userId === ev.creatorUserId || t.email === ev.creatorEmail);
   const taggedMembers = team.filter(t => (ev.team || []).includes(t.id));
   const hasMore = requests.length > 1;
+
+  const creatorUserDoc = registeredUsers.find(u => u.uid === ev.creatorUserId || u.email === ev.creatorEmail);
+  const isCreatorAdmin = creatorUserDoc?.role === 'admin';
+  const canRefuse = userRole === 'admin' || !isCreatorAdmin;
 
   const handlePropose = () => {
     if (!newDate || !newStart || !newEnd) return;

@@ -196,14 +196,30 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
               const members = team.filter(t => ev.team && ev.team.includes(t.id));
               const dur = t2m(ev.endTime) - t2m(ev.startTime);
               return (
-                <Card key={ev.id} onClick={() => setSelectedEv(ev)} style={{ display: 'flex', gap: 13, padding: '13px 15px', marginBottom: 9 }}>
-                  <div style={{ width: 3, borderRadius: 2, background: c, flexShrink: 0 }} />
+                <Card key={ev.id} onClick={() => setSelectedEv(ev)} style={{
+                  display: 'flex', gap: 13, padding: '13px 15px', marginBottom: 9,
+                  opacity: ev.status === 'pending' ? 0.75 : 1,
+                  border: ev.status === 'pending' ? `1.5px dashed #f59e0b80` : undefined,
+                  background: ev.status === 'pending'
+                    ? `repeating-linear-gradient(45deg, transparent, transparent 8px, ${c}08 8px, ${c}08 16px)`
+                    : undefined
+                }}>
+                  <div style={{ width: 3, borderRadius: 2, background: ev.status === 'pending' ? '#f59e0b' : c, flexShrink: 0 }} />
                   <div style={{ fontSize: 11, color: C.inkSoft, flexShrink: 0, width: 48, textAlign: 'right', fontFamily: SANS }}>
                     <div style={{ fontWeight: 700, color: c }}>{ev.startTime}</div><div style={{ marginTop: 1 }}>{ev.endTime}</div>
                     <div style={{ fontSize: 9.5, marginTop: 3 }}>{hm(dur)}</div>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, fontFamily: SANS }}>{ev.title}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: C.ink, fontFamily: SANS, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      {ev.title}
+                      {ev.status === 'pending' && (
+                        <span style={{
+                          fontSize: 9.5, fontWeight: 700, color: '#92400e',
+                          background: '#fef3c7', border: '1px solid #f59e0b60',
+                          borderRadius: 20, padding: '2px 7px', letterSpacing: 0.3
+                        }}>⏳ În așteptare</span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 11, color: C.inkSoft, marginTop: 2, fontFamily: SANS }}>{(EV_TYPES[ev.type] || EV_TYPES.meeting).label}</div>
                     {members.length > 0 && <div style={{ display: 'flex', marginTop: 7 }}>
                       {members.slice(0, 4).map((m, idx) => <div key={m.id} style={{ marginLeft: idx > 0 ? -6 : 0, border: '2px solid ' + C.panel, borderRadius: '50%' }}><Avatar p={m} size={22} /></div>)}
@@ -292,10 +308,18 @@ export default function CalendarView({ projects, team, events, onAddEvent, onDel
                           return (
                             <div key={ev.id} onClick={() => setSelectedEv(ev)} style={{ 
                               position: 'absolute', top: Math.max(0, topPx) + 1, left: 3, right: 3,
-                              height: Math.max(heightPx - 2, 16), overflow: 'hidden', background: c + '1F', borderLeft: '3px solid ' + c,
-                              borderRadius: '0 7px 7px 0', padding: '3px 6px', cursor: 'pointer', zIndex: 10 
+                              height: Math.max(heightPx - 2, 16), overflow: 'hidden',
+                              background: ev.status === 'pending'
+                                ? `repeating-linear-gradient(45deg, ${c}08, ${c}08 6px, ${c}18 6px, ${c}18 12px)`
+                                : c + '1F',
+                              borderLeft: `3px ${ev.status === 'pending' ? 'dashed' : 'solid'} ` + (ev.status === 'pending' ? '#f59e0b' : c),
+                              borderRadius: '0 7px 7px 0', padding: '3px 6px', cursor: 'pointer', zIndex: 10,
+                              opacity: ev.status === 'pending' ? 0.8 : 1
                             }}>
-                              <div style={{ fontSize: 10.5, fontWeight: 600, color: c, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: SANS }}>{ev.title}</div>
+                              <div style={{ fontSize: 10.5, fontWeight: 600, color: ev.status === 'pending' ? '#92400e' : c, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: SANS }}>
+                                {ev.title}
+                                {ev.status === 'pending' && <span style={{fontSize: 8, marginLeft: 3, opacity: 0.9}}>⏳</span>}
+                              </div>
                               {heightPx > 30 && <div style={{ fontSize: 9, color: C.inkSoft, fontFamily: SANS }}>{ev.startTime}-{ev.endTime}</div>}
                             </div>
                           );

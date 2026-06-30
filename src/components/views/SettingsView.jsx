@@ -4,7 +4,7 @@ import { C, SERIF, SANS } from "../../utils/constants";
 import Card from "../common/Card";
 import FField from "../common/FField";
 
-export default function SettingsView({ theme, setTheme, isMobile }) {
+function SettingsView({ theme, setTheme, isMobile }) {
   const [activeTab, setActiveTab] = useState('profile');
   
   // Fake state for form
@@ -200,3 +200,5 @@ export default function SettingsView({ theme, setTheme, isMobile }) {
     </div>
   );
 }
+
+export default React.memo(SettingsView);
